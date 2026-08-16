@@ -1,0 +1,1376 @@
+<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Suivi Portefeuille Nl",
+  "schemaVersion": 1,
+  "description": "Daily tracking dashboard of the FIC Structured Asset Allocation (SAA) structured products portfolio — valuations, barrier distance, potential value. Fed by daily \"Valorisations de vos produits structurés\" email (Altitude IS). NL/EN version."
+}
+</script>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portefeuilleoverzicht - Gestructureerde producten</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{
+  --ink:#0f1b2d; --ink2:#33475b; --muted:#6b7a8d; --line:#e2e8f0;
+  --bg:#f6f8fb; --card:#ffffff;
+  --ubs:#1f6feb; --bnp:#00915a; --nat:#e8833a; --bnp2:#0a5c8a;
+  --pos:#0a8f5b; --neg:#c0392b; --accent:#0f1b2d;
+  --barrier:#c0392b; --safe:#0a8f5b; --coupon:#c9820a; --bench:#000000;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Inter","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{width:100%;margin:0 auto;padding:32px 24px 64px;box-sizing:border-box}
+header{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:8px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+.asof{font-size:13px;color:var(--muted);margin-top:6px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:28px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.kpi .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .val{font-size:26px;font-weight:800;margin-top:6px;letter-spacing:-.02em}
+.kpi .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.perf-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.perf-stats .stat{flex:1 1 110px;text-align:center}
+.perf-stats .stat .lbl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.perf-stats .stat .val{font-size:19px;font-weight:800;margin-top:3px;letter-spacing:-.01em}
+.grid{display:grid;gap:20px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+.card h2{font-size:14px;font-weight:700;letter-spacing:-.01em}
+.card .hint{font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:14px}
+.section-title{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin:38px 0 4px;padding-left:10px;border-left:3px solid var(--ink)}
+.chartbox{position:relative;height:260px}
+.chartbox.tall{height:300px}
+.bar-row{margin:38px 0 46px}
+.bar-row .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px}
+.bar-row .name{font-weight:600}
+.bar-row.compact{margin:0 0 20px}
+.bar-row.compact .top{font-size:11.5px;margin-bottom:6px;align-items:baseline;gap:8px}
+.bar-row.compact .name{font-weight:600;line-height:1.25}
+.bar-row.compact .margins{display:flex;gap:8px;font-weight:800;font-size:11px;white-space:nowrap;flex:0 0 auto}
+.bar-row.compact .bar-track{height:26px;margin-top:22px}
+.bar-row.compact .bar-fill{border-radius:6px 0 0 6px}
+.bar-row.compact .bar-cursor{height:32px;top:-3px}
+.bar-row.compact .bar-cursor .curlab{top:-18px;font-size:10px}
+.bar-row.compact .bar-barrier{top:-12px;height:38px}
+.bar-row.compact .bar-barrier .tag{top:31px;font-size:9px}
+.bar-row.compact .bar-barrier2{top:0;height:38px}
+.bar-row.compact .bar-barrier2 .tag{top:32px;font-size:9px}
+.bar-row.compact .bar-ref{height:26px}
+.bar-row.compact .bar-ref .tag{top:13px;font-size:8.5px}
+.bar-track{position:relative;height:38px;margin-top:40px;background:linear-gradient(90deg,#fdecea 0%,#fdf6ec 55%,#e9f7f0 100%);border-radius:6px;border:1px solid var(--line)}
+.bar-fill{position:absolute;top:0;left:0;height:100%;border-radius:6px 0 0 6px;opacity:.16}
+.bar-cursor{position:absolute;top:-4px;width:2px;height:46px;background:var(--ink)}
+.bar-cursor .dot{position:absolute;top:-6px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.bar-cursor .curlab{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;color:var(--ink);white-space:nowrap}
+.bar-drop{position:absolute;top:9px;height:0;border-top:2px dashed var(--ink2);pointer-events:none}
+.bar-drop .arrow{position:absolute;left:-1px;top:-7px;color:var(--ink2);font-size:12px;line-height:1}
+.bar-drop .droplab{position:absolute;left:55%;top:6px;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--ink2);white-space:nowrap;background:var(--card);padding:0 4px}
+.bar-drop.above .droplab{top:-18px}
+.bar-barrier{position:absolute;top:-20px;width:2px;height:58px;background:var(--barrier)}
+.bar-barrier .tag{position:absolute;top:39px;left:50%;transform:translate(-50%,-50%);font-size:10px;color:var(--barrier);font-weight:700;white-space:nowrap;background:var(--card);padding:0 2px;border-radius:2px}
+.bar-barrier2{position:absolute;top:0;width:2px;height:58px;background:var(--coupon)}
+.bar-barrier2 .tag{position:absolute;top:19px;left:50%;transform:translate(-50%,-50%);font-size:10px;color:var(--coupon);font-weight:700;white-space:nowrap;background:var(--card);padding:0 2px;border-radius:2px}
+.bar-ref{position:absolute;top:0;width:1px;height:38px;background:var(--muted);opacity:.55}
+.bar-ref .tag{position:absolute;top:19px;left:50%;transform:translate(-50%,-50%);font-size:9px;color:var(--muted);font-weight:600;background:var(--card);padding:0 2px;border-radius:2px}
+.bar-legend{display:flex;gap:18px;font-size:11px;color:var(--muted);margin-top:14px}
+.bar-legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.margin-val{font-weight:800}
+table.pot{width:auto;min-width:560px;border-collapse:collapse;font-size:13px;margin-top:6px}
+table.pot th,table.pot td{text-align:right;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.pot th{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+table.pot td:first-child,table.pot th:first-child{text-align:left;white-space:normal}
+table.pot tr:last-child td{border-bottom:none;font-weight:800;border-top:2px solid var(--ink)}
+.tagname{display:inline-block;font-size:10px;color:var(--muted);font-weight:600}
+table.ref{width:100%;min-width:1100px;border-collapse:collapse;font-size:12px;margin-top:6px}
+table.ref th,table.ref td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.ref th{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;background:var(--bg)}
+table.ref tr:last-child td{border-bottom:none}
+table.ref tr:hover td{background:#fafbfc}
+table.ref td.num{text-align:right}
+table.ref tr:last-child td.total{font-weight:800;border-top:2px solid var(--ink)}
+.custom-legend{display:flex;flex-direction:column;gap:5px}
+.custom-legend .item{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:var(--ink2);line-height:1.3}
+.custom-legend .sw{flex:0 0 auto;margin-top:2px}
+.line-legend{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.line-legend .item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink2);line-height:1}
+.line-legend .ln{display:inline-block;width:22px;height:10px;position:relative;flex:0 0 auto}
+.line-legend .ln::after{content:'';position:absolute;top:50%;left:0;width:100%;border-top:2px dashed var(--c);transform:translateY(-50%)}
+.line-legend .ln.solid::after{border-top:3px solid var(--c)}
+.line-legend .ln.dotted::after{border-top:2px dotted var(--c)}
+.line-legend .ln.dashlong::after{border-top:3px dashed var(--c)}
+.frise{position:relative;height:236px;margin-top:30px}
+.frise-track{position:absolute;top:105px;left:10px;right:10px;height:2px;background:var(--line)}
+.frise-tick{position:absolute;width:1px;background:var(--muted);opacity:.45}
+.frise-yeartick{position:absolute;top:99px;height:12px;width:1px;background:var(--muted);opacity:.6}
+.frise-yearlabel{position:absolute;top:119px;font-size:9px;color:var(--muted);white-space:nowrap;transform:translateX(-50%);font-weight:600}
+.frise-date{position:absolute;font-size:10.5px;color:var(--ink2);white-space:nowrap;transform:translate(-50%,-100%);font-weight:700}
+.frise-date.below{transform:translateX(-50%)}
+.frise-bubble{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;white-space:nowrap;border:2px solid #fff;box-shadow:0 1px 4px rgba(15,27,45,.18);transform:translate(-50%,-50%);line-height:1;text-align:center}
+.frise-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+.frise-legend .item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink2)}
+footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+.descprod{font-size:13px;color:var(--ink2);line-height:1.6}
+.descprod dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0 0 12px}
+.descprod dt{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;white-space:nowrap}
+.descprod dd{margin:0;font-weight:600;color:var(--ink)}
+.descprod p{margin:8px 0 0}
+.descprod ul{margin:6px 0 0;padding-left:18px}
+.descprod li{margin:3px 0}
+.tab-nav{display:flex;gap:6px;margin-top:20px;border-bottom:1px solid var(--line)}
+.tab-btn{font-family:inherit;font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab-btn:hover{color:var(--ink2)}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--ink)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.period-nav{display:flex;gap:6px;margin:12px 0 6px}
+.period-btn{font-family:inherit;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.period-btn:hover{color:var(--ink2);border-color:var(--muted)}
+.period-btn.active{background:var(--ink);border-color:var(--ink);color:#fff}
+.disclaimer{font-size:13px;color:var(--ink2);line-height:1.65;max-width:1000px}
+.disclaimer h3{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);font-weight:700;margin:22px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.disclaimer p{margin:0 0 8px}
+.disclaimer ul{margin:6px 0 0;padding-left:20px}
+.disclaimer li{margin:5px 0}
+.disclaimer b{color:var(--ink)}
+.disclaimer .footnote{margin-top:22px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);font-style:italic}
+@media(max-width:900px){.kpis{grid-template-columns:1fr 1fr}.g2,.g3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Collectief intern fonds · Portefeuille gestructureerde producten</div>
+  <h1>FIC Structured Asset Allocation (SAA)</h1>
+  <div class="asof" id="asof"></div>
+</header>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="disclaimer">Disclaimer</button>
+  <button class="tab-btn" data-tab="dashboard">Dashboard</button>
+  <button class="tab-btn" data-tab="prod-DE000UQ0MWF3" id="tabBtnProd_DE000UQ0MWF3">Product</button>
+  <button class="tab-btn" data-tab="prod-XS3080432829" id="tabBtnProd_XS3080432829">Product</button>
+  <button class="tab-btn" data-tab="prod-FR0014015IH0" id="tabBtnProd_FR0014015IH0">Product</button>
+  <button class="tab-btn" data-tab="prod-XS3266363558" id="tabBtnProd_XS3266363558">Product</button>
+  <button class="tab-btn" data-tab="sousjacents">Onderliggende waarden</button>
+</div>
+
+<div class="tab-panel active" data-panel="disclaimer">
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card disclaimer">
+    <h2>Disclaimer en gebruiksbeperkingen</h2>
+    <div class="hint">Te lezen voor elk gebruik van de gegevens in dit dashboard</div>
+
+    <div class="callout-warning" style="border-left:4px solid var(--neg);background:#fdf1ef;padding:14px 16px;border-radius:6px;margin-bottom:18px">
+      <p style="margin:0"><b>Belangrijk — dit document geeft niet de waarde van het fonds FIC SAA weer.</b> De weergegeven waarderingen hebben enkel betrekking op de gestructureerde producten van de portefeuille; ze houden geen rekening met de beheerskosten van het fonds, de niet-belegde cash, noch met de andere parameters die de intrinsieke waarde van het FIC bepalen. Voor de exacte waarde van het fonds, neem contact op met de verzekeraar of uw gebruikelijke contactpersoon.</p>
+    </div>
+
+    <h3>Aard van het document</h3>
+    <p>Dit dashboard is een <b>intern opvolgingsinstrument</b>, opgesteld ter informatie. Het vormt geen aanbod, geen uitnodiging, geen beleggingsadvies en geen persoonlijke aanbeveling tot aankoop, verkoop of aanhouden van de weergegeven financiële instrumenten. Het heeft geen waarde als officiële rapportering: enkel de documenten die door de beheervennootschap worden bezorgd en de juridische productdocumentatie (term sheets, definitieve voorwaarden, basisprospectus) zijn rechtsgeldig.</p>
+
+    <h3>Bron en actualiteit van de gegevens</h3>
+    <p>De weergegeven waarderingen zijn <b>indicatieve BID-prijzen</b>, dagelijks meegedeeld door de plaatsende tussenpersoon. Ze zijn niet-contractueel en kunnen worden herzien. De gebruikte waarderingsdatum is die vermeld in de opname en kan afwijken van de verzenddatum en van product tot product. Een indicatieve prijs is geen uitvoeringsprijs: de bied-laatspread kan tot 1% bedragen en de liquiditeit van de secundaire markt wordt niet gegarandeerd door de emittent.</p>
+
+    <h3>Potentiële eindwaarde en geannualiseerde performance</h3>
+    <p>De « potentiële eindwaarde » is een <b>vereenvoudigde schatting</b>, berekend onder de veronderstelling van een volledig geactiveerde coupon en een onderliggende waarde bevroren op haar huidige niveau. Ze modelleert het werkelijke mechanisme van de Click-producten niet (kapitalisatie tegen 3% p.a. na doorbreking, degressief barrièreschema, effectieve clickdatum) en vormt in geen geval een projectie of een rendementsbelofte. De geannualiseerde performance wordt berekend in enkelvoudige interest <i>(multiple − 1) / resterende looptijd</i>, zonder kapitalisatie: het is geen IRR.</p>
+
+    <h3>Geen persoonlijk advies</h3>
+    <p>De weergegeven elementen houden geen rekening met de specifieke situatie, doelstellingen of behoeften van een belegger, en vormen in geen geval een persoonlijke aanbeveling. Elke beslissing moet individueel blijven en, indien nodig, steunen op het advies van een beleggingsadviseur en op onafhankelijk juridisch, fiscaal en boekhoudkundig advies. De fiscale behandeling hangt af van de eigen situatie van elke belegger, kan in de tijd evolueren, en wordt niet behandeld in dit document.</p>
+
+    <h3>Belangrijkste risico's</h3>
+    <ul>
+      <li><b>Risico op kapitaalverlies</b> — de kapitaalbescherming is voorwaardelijk: wordt de onderliggende waarde op vervaldag onder haar <span style="color:var(--barrier)">beschermingsbarrière</span> vastgesteld, dan wordt het kapitaal verminderd in verhouding tot de daling, zonder ondergrens.</li>
+      <li><b>Risico op nulcoupon</b> — de coupon is voorwaardelijk aan het doorbreken van zijn eigen <span style="color:var(--coupon)">barrière</span>. Een product kan het nominaal terugbetalen zonder enig rendement over zijn volledige looptijd.</li>
+      <li><b>Kredietrisico</b> — de houder is blootgesteld aan het in gebreke blijven van de emittent en, in voorkomend geval, van diens garant. De weergegeven ratings zijn indicatief, op uitgiftedatum, en herzienbaar zonder voorafgaande kennisgeving.</li>
+      <li><b>Decrement-indexen</b> — de onderliggende waarden bevatten een forfaitaire afhouding (50 punten per jaar). Hun performance is structureel lager dan die van de equivalente index met herbelegde dividenden; het decrement weegt zwaarder naarmate de indexniveaus lager zijn.</li>
+      <li><b>Durationrisico</b> — het grootste deel van de waarde wordt op vervaldag uitbetaald (9 tot 12 jaar). Een vroegtijdige uitstap gebeurt tegen marktprijs, mogelijk ver onder het nominaal.</li>
+      <li><b>Liquiditeitsrisico</b> — de liquiditeit van de secundaire markt hangt af van vraag en aanbod en wordt door geen enkele partij gegarandeerd; in gespannen marktomstandigheden kan een effect moeilijk te waarderen of te verkopen worden, wat de volatiliteit van de indicatieve prijs vergroot en een vervroegde uitstap kan bemoeilijken.</li>
+      <li><b>Complexiteit en geschiktheid</b> — gestructureerde en afgeleide producten houden risico's in die moeilijker te kwantificeren zijn dan eenvoudige instrumenten (aandelen, obligaties, monetaire ICB's); ze zijn bestemd voor beleggers die in staat zijn het mechanisme en de risico's ervan te begrijpen en financieel te dragen.</li>
+      <li><b>Observatiefrequentie</b> — de barrières van de Digital-producten worden enkel op vervaldag vastgesteld (Europese observatie); die van de Click-producten jaarlijks vanaf jaar 5. Doorbrekingen tijdens de looptijd hebben geen effect, in beide richtingen.</li>
+    </ul>
+
+    <h3>Te controleren punten voor verspreiding</h3>
+    <ul>
+      <li>De productkenmerken (nominale bedragen, data, barrières, couponschema's) zijn overgenomen uit de term sheets en de rapportering van de tussenpersoon; ze moeten <b>getoetst worden aan de definitieve juridische documentatie</b> voor elk gebruik richting cliënt.</li>
+      <li>Er is een <b>inconsistentie vastgesteld</b> in de vervaldatum van een van de Click-producten (12 jaar) tussen de hoofding en de gebeurtenissentabel van de ontvangen rapportering. De hier gebruikte datum is die van de gebeurtenissentabel; ze moet nog bevestigd worden door de tussenpersoon.</li>
+      <li>Dit document bevat identificeerbare gegevens (emittenten, ISIN, nominale bedragen). Elke externe verspreiding vereist voorafgaandelijk een <b>anonimisering</b> en een compliancevalidatie.</li>
+    </ul>
+
+    <p class="footnote">Resultaten uit het verleden en simulaties van resultaten uit het verleden vormen geen voorspelling van toekomstige resultaten: een belegger kan een bedrag terugkrijgen dat lager is dan het geïnvesteerde kapitaal. De informatie is gebaseerd op bronnen die als betrouwbaar worden beschouwd, zonder garantie op juistheid, volledigheid of actualiteit; de weergegeven waarderingen, indexniveaus en berekeningen kunnen zonder voorafgaande kennisgeving worden gewijzigd, en er wordt geen aansprakelijkheid aanvaard voor het gebruik ervan.</p>
+  </div>
+</div>
+</div>
+
+<div class="tab-panel" data-panel="dashboard">
+<div class="kpis" id="kpis"></div>
+
+<div class="section-title">Kenmerken van de producten van het FIC SAA</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card" style="overflow-x:auto">
+    <h2>Detail van de 4 producten</h2>
+    <div class="hint">Volledige referentie — nominaal, data, ticker, index, barrières en coupon</div>
+    <table class="ref" id="refTable"></table>
+  </div>
+</div>
+
+<div class="section-title">Tijdlijn van de lanceringen</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2>Tijdlijn van de lanceringen</h2>
+    <div class="hint">Grootte van de bol proportioneel aan het verwerkte nominaal — nominaal weergegeven in de bol</div>
+    <div class="frise" id="friseTimeline"></div>
+  </div>
+</div>
+
+<div class="section-title">Spreiding van de portefeuille</div>
+<div class="grid g3" style="margin-top:16px">
+  <div class="card"><h2>Blootstelling per product</h2><div class="hint">Huidige marktwaarde (€)</div><div class="chartbox tall"><canvas id="cExp"></canvas></div></div>
+  <div class="card"><h2>Per emittent</h2><div class="hint">Huidige marktwaarde</div><div class="chartbox" style="height:200px"><canvas id="cEmet"></canvas></div><div id="emetRatings" style="margin-top:6px"></div></div>
+  <div class="card"><h2>Per onderliggende waarde</h2><div class="hint">Huidige marktwaarde</div><div class="chartbox" style="height:200px"><canvas id="cSj"></canvas></div><div id="sjLegend" style="margin-top:6px"></div></div>
+</div>
+
+<div class="section-title">Historische performance</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card" style="max-width:1100px;margin:0 auto"><h2>Evolutie in de tijd</h2><div class="hint">Productwaardering (%) sinds uitgifte — nominaal gewogen gemiddelde, laatst bekende waardering overgenomen als een product niet gequoteerd is</div><div class="chartbox tall"><canvas id="cTime"></canvas></div><div id="cTimeLegend"></div><div class="perf-stats" id="perfStats"></div></div>
+</div>
+
+<div class="section-title">Veiligheid</div>
+<div class="grid g2" style="margin-top:16px;gap:40px">
+  <div class="card"><h2>Productwaardering vs indexperformance</h2><div class="hint">% van nominaal / indexperformance sinds uitgifte</div><div class="chartbox tall"><canvas id="cPerf"></canvas></div></div>
+  <div class="card">
+    <h2>Afstand tot de barrières</h2>
+    <div class="hint">Daling die de index kan opvangen voor elke barrière wordt doorbroken</div>
+    <div id="barrAll"></div>
+    <div class="bar-legend">
+      <span><span class="sw" style="background:var(--ink)"></span>Indexniveau</span>
+      <span><span class="sw" style="background:var(--barrier)"></span>Kapitaalb.</span>
+      <span><span class="sw" style="background:var(--coupon)"></span>Couponb.</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">Potentiële waarde</div>
+<div class="grid g2" style="margin-top:16px;gap:40px">
+  <div class="card">
+    <h2>Potentiële waarde (coupon geactiveerd)</h2>
+    <div class="hint">Waarde bij click, scenario met index bevroren op vandaag</div>
+    <div class="chartbox tall"><canvas id="cPot"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>Analyse</h2>
+    <div style="overflow-x:auto"><table class="pot" id="potTable"></table></div>
+  </div>
+</div>
+
+<footer id="foot"></footer>
+</div>
+
+<div class="tab-panel" data-panel="prod-DE000UQ0MWF3">
+<div class="kpis" id="kpisProd_DE000UQ0MWF3" style="margin-top:16px"></div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2>Productbeschrijving</h2>
+    <div id="descProd_DE000UQ0MWF3" class="descprod"></div>
+  </div>
+</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2 id="titleProd_DE000UQ0MWF3">Historiek product vs index</h2>
+    <div class="hint" id="hintProd_DE000UQ0MWF3">Productwaardering (%) en onderliggende index herbasis 100 sinds lancering</div>
+    <div class="chartbox tall"><canvas id="cProd_DE000UQ0MWF3"></canvas></div>
+    <div id="legendProd_DE000UQ0MWF3"></div>
+  </div>
+</div>
+</div>
+
+<div class="tab-panel" data-panel="prod-XS3080432829">
+<div class="kpis" id="kpisProd_XS3080432829" style="margin-top:16px"></div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2>Productbeschrijving</h2>
+    <div id="descProd_XS3080432829" class="descprod"></div>
+  </div>
+</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2 id="titleProd_XS3080432829">Historiek product vs index</h2>
+    <div class="hint" id="hintProd_XS3080432829">Productwaardering (%) en onderliggende index herbasis 100 sinds lancering</div>
+    <div class="chartbox tall"><canvas id="cProd_XS3080432829"></canvas></div>
+    <div id="legendProd_XS3080432829"></div>
+  </div>
+</div>
+</div>
+
+<div class="tab-panel" data-panel="prod-FR0014015IH0">
+<div class="kpis" id="kpisProd_FR0014015IH0" style="margin-top:16px"></div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2>Productbeschrijving</h2>
+    <div id="descProd_FR0014015IH0" class="descprod"></div>
+  </div>
+</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2 id="titleProd_FR0014015IH0">Historiek product vs index</h2>
+    <div class="hint" id="hintProd_FR0014015IH0">Productwaardering (%) en onderliggende index herbasis 100 sinds lancering</div>
+    <div class="chartbox tall"><canvas id="cProd_FR0014015IH0"></canvas></div>
+    <div id="legendProd_FR0014015IH0"></div>
+  </div>
+</div>
+</div>
+
+<div class="tab-panel" data-panel="prod-XS3266363558">
+<div class="kpis" id="kpisProd_XS3266363558" style="margin-top:16px"></div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2>Productbeschrijving</h2>
+    <div id="descProd_XS3266363558" class="descprod"></div>
+  </div>
+</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2 id="titleProd_XS3266363558">Historiek product vs index</h2>
+    <div class="hint" id="hintProd_XS3266363558">Productwaardering (%) en onderliggende index herbasis 100 sinds lancering</div>
+    <div class="chartbox tall"><canvas id="cProd_XS3266363558"></canvas></div>
+    <div id="legendProd_XS3266363558"></div>
+  </div>
+</div>
+</div>
+
+<div class="tab-panel" data-panel="sousjacents">
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2>Onderliggende waarden — vergeleken evolutie</h2>
+    <div class="hint" id="hintSousJacents"></div>
+    <div class="period-nav" id="periodNav">
+      <button class="period-btn active" data-period="all">All</button>
+      <button class="period-btn" data-period="ytd">YTD</button>
+      <button class="period-btn" data-period="6m">6 maanden</button>
+      <button class="period-btn" data-period="3m">3 maanden</button>
+      <button class="period-btn" data-period="1m">1 maand</button>
+    </div>
+    <div class="chartbox tall" style="height:420px"><canvas id="cSousJacents"></canvas></div>
+    <div id="legendSousJacents"></div>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+const RATINGS = {
+  "UBS": "S&P A+ / Moody's Aa2",
+  "BNP Paribas": "S&P A+ / Moody's Aa3",
+  "Natixis": "S&P A+ / Moody's A1",
+};
+const REF = [
+  {id:"DE000UQ0MWF3", nom:"Digital Boost Sovereignty", emetteur:"UBS", sousjacent:"MQDSOV50", indice:"Merqube Eurozone Sovereignty 50", indiceShort:"Eurozone Sovereignty", notionnel:600000, emission:"2025-08-28",
+   couponPct:12, clickYears:9, barriereCoupon:80, barriereCapital:50, cible:"2034-09-04", color:"var(--ubs)"},
+  {id:"XS3080432829", nom:"Digital Boost Titans Note", emetteur:"BNP Paribas", sousjacent:"TITANEST", indice:"Bloomberg Eurozone Titans 50", indiceShort:"Eurozone Titans", notionnel:600000, emission:"2025-09-04",
+   couponPct:12, clickYears:9, barriereCoupon:86, barriereCapital:50, cible:"2034-09-18", color:"var(--bnp)"},
+  {id:"FR0014015IH0", nom:"Click & Lock Yield Note", emetteur:"Natixis", sousjacent:"EZLEADDG", indice:"iEdge Eurozone Leaders 10", indiceShort:"Eurozone Leaders", notionnel:1500000, emission:"2026-02-05",
+   couponPct:12, clickYears:5, barriereCoupon:80, barriereCapital:50, cible:"2031-02-03", color:"var(--nat)"},
+  {id:"XS3266363558", nom:"Click Switch To Bond - MSOVERNT", emetteur:"BNP Paribas", sousjacent:"MSOVERNT", indice:"Morningstar Eurozone Sovereignty Selection Fixed Basket", indiceShort:"Eurozone Sovereignty", notionnel:950000, emission:"2026-03-04",
+   couponPct:12, clickYears:5, barriereCoupon:100, barriereCapital:50, cible:"2031-03-25", color:"var(--bnp2)"},
+];
+const OBS = [
+  { date:"2025-09-01", valos:{ "DE000UQ0MWF3":{valo:97.11, perfIndice:-1.94} } },
+  { date:"2025-09-02", valos:{ "DE000UQ0MWF3":{valo:94.43, perfIndice:-4.01} } },
+  { date:"2025-09-08", valos:{ "DE000UQ0MWF3":{valo:96.57, perfIndice:-1.21} } },
+  { date:"2025-09-09", valos:{ "DE000UQ0MWF3":{valo:96.67, perfIndice:-0.81} } },
+  { date:"2025-09-10", valos:{ "DE000UQ0MWF3":{valo:98.03, perfIndice:0.55} } },
+  { date:"2025-09-11", valos:{ "DE000UQ0MWF3":{valo:98.79, perfIndice:1.61} } },
+  { date:"2025-09-12", valos:{ "DE000UQ0MWF3":{valo:98.68, perfIndice:1.72} } },
+  { date:"2025-09-15", valos:{ "DE000UQ0MWF3":{valo:99.63, perfIndice:3.39} } },
+  { date:"2025-09-16", valos:{ "DE000UQ0MWF3":{valo:99.79, perfIndice:1.92} } },
+  { date:"2025-09-17", valos:{ "DE000UQ0MWF3":{valo:99.18, perfIndice:1.61} } },
+  { date:"2025-09-18", valos:{ "DE000UQ0MWF3":{valo:101.38, perfIndice:3.81}, "XS3080432829":{valo:101.06, perfIndice:1.8} } },
+  { date:"2025-09-19", valos:{ "XS3080432829":{valo:100.95, perfIndice:1.92} } },
+  { date:"2025-09-22", valos:{ "DE000UQ0MWF3":{valo:101.28, perfIndice:4.23}, "XS3080432829":{valo:100.66, perfIndice:1.71} } },
+  { date:"2025-09-23", valos:{ "DE000UQ0MWF3":{valo:101.22, perfIndice:4.42}, "XS3080432829":{valo:101.43, perfIndice:2.23} } },
+  { date:"2025-09-24", valos:{ "DE000UQ0MWF3":{valo:101.5, perfIndice:5.09}, "XS3080432829":{valo:100.99, perfIndice:2.07} } },
+  { date:"2025-09-25", valos:{ "DE000UQ0MWF3":{valo:100.66, perfIndice:4.51}, "XS3080432829":{valo:100.87, perfIndice:1.72} } },
+  { date:"2025-09-26", valos:{ "XS3080432829":{valo:101.68, perfIndice:2.93} } },
+  { date:"2025-09-29", valos:{ "DE000UQ0MWF3":{valo:101.01, perfIndice:5.8}, "XS3080432829":{valo:101.5, perfIndice:2.97} } },
+  { date:"2025-09-30", valos:{ "DE000UQ0MWF3":{valo:101.03, perfIndice:6.2}, "XS3080432829":{valo:101.84, perfIndice:3.34} } },
+  { date:"2025-10-01", valos:{ "DE000UQ0MWF3":{valo:103.31, perfIndice:8.83}, "XS3080432829":{valo:101.82, perfIndice:4.1} } },
+  { date:"2025-10-02", valos:{ "DE000UQ0MWF3":{valo:104.82, perfIndice:10.81}, "XS3080432829":{valo:103.95, perfIndice:5.45} } },
+  { date:"2025-10-03", valos:{ "XS3080432829":{valo:103.66, perfIndice:5.46} } },
+  { date:"2025-10-06", valos:{ "DE000UQ0MWF3":{valo:102.91, perfIndice:9.73}, "XS3080432829":{valo:103.67, perfIndice:4.98} } },
+  { date:"2025-10-07", valos:{ "DE000UQ0MWF3":{valo:101.2, perfIndice:8.29}, "XS3080432829":{valo:102.36, perfIndice:4.59} } },
+  { date:"2025-10-08", valos:{ "DE000UQ0MWF3":{valo:102.13, perfIndice:9.4}, "XS3080432829":{valo:102.88, perfIndice:5.39} } },
+  { date:"2025-10-09", valos:{ "DE000UQ0MWF3":{valo:101.78, perfIndice:9.41}, "XS3080432829":{valo:102.14, perfIndice:4.72} } },
+  { date:"2025-10-10", valos:{ "DE000UQ0MWF3":{valo:98.99, perfIndice:6.58}, "XS3080432829":{valo:102.06, perfIndice:2.73} } },
+  { date:"2025-10-13", valos:{ "DE000UQ0MWF3":{valo:100.05, perfIndice:7.78}, "XS3080432829":{valo:99.78, perfIndice:3.51} } },
+  { date:"2025-10-14", valos:{ "DE000UQ0MWF3":{valo:98.77, perfIndice:6.97}, "XS3080432829":{valo:100.06, perfIndice:3.22} } },
+  { date:"2025-10-15", valos:{ "DE000UQ0MWF3":{valo:98.63, perfIndice:6.82}, "XS3080432829":{valo:101.52, perfIndice:4.25} } },
+  { date:"2025-10-16", valos:{ "DE000UQ0MWF3":{valo:99.58, perfIndice:7.94}, "XS3080432829":{valo:101.81, perfIndice:4.99} } },
+  { date:"2025-10-17", valos:{ "DE000UQ0MWF3":{valo:96.41, perfIndice:5.76}, "XS3080432829":{valo:100.14, perfIndice:3.35} } },
+  { date:"2025-10-20", valos:{ "DE000UQ0MWF3":{valo:98.15, perfIndice:7.98}, "XS3080432829":{valo:101.19, perfIndice:4.8} } },
+  { date:"2025-10-21", valos:{ "DE000UQ0MWF3":{valo:97.91, perfIndice:7.94}, "XS3080432829":{valo:101.38, perfIndice:4.92} } },
+  { date:"2025-10-22", valos:{ "DE000UQ0MWF3":{valo:97.0, perfIndice:7.1}, "XS3080432829":{valo:100.49, perfIndice:4.11} } },
+  { date:"2025-10-23", valos:{ "DE000UQ0MWF3":{valo:97.35, perfIndice:7.66}, "XS3080432829":{valo:101.21, perfIndice:4.81} } },
+  { date:"2025-10-24", valos:{ "DE000UQ0MWF3":{valo:97.77, perfIndice:8.61}, "XS3080432829":{valo:101.11, perfIndice:4.88} } },
+  { date:"2025-10-27", valos:{ "DE000UQ0MWF3":{valo:97.44, perfIndice:8.8}, "XS3080432829":{valo:101.29, perfIndice:5.63} } },
+  { date:"2025-10-28", valos:{ "DE000UQ0MWF3":{valo:97.14, perfIndice:8.78}, "XS3080432829":{valo:101.51, perfIndice:5.46} } },
+  { date:"2025-10-29", valos:{ "DE000UQ0MWF3":{valo:97.08, perfIndice:8.85}, "XS3080432829":{valo:101.6, perfIndice:5.67} } },
+  { date:"2025-10-30", valos:{ "DE000UQ0MWF3":{valo:96.21, perfIndice:8.2}, "XS3080432829":{valo:101.64, perfIndice:5.7} } },
+  { date:"2025-10-31", valos:{ "DE000UQ0MWF3":{valo:95.46, perfIndice:7.56}, "XS3080432829":{valo:101.69, perfIndice:5.04} } },
+  { date:"2025-11-03", valos:{ "DE000UQ0MWF3":{valo:95.62, perfIndice:8.16}, "XS3080432829":{valo:101.03, perfIndice:5.44} } },
+  { date:"2025-11-04", valos:{ "DE000UQ0MWF3":{valo:94.46, perfIndice:7.09}, "XS3080432829":{valo:100.4, perfIndice:4.82} } },
+  { date:"2025-11-05", valos:{ "DE000UQ0MWF3":{valo:93.6, perfIndice:6.3}, "XS3080432829":{valo:100.41, perfIndice:5.09} } },
+  { date:"2025-11-06", valos:{ "DE000UQ0MWF3":{valo:92.9, perfIndice:5.82}, "XS3080432829":{valo:99.16, perfIndice:3.74} } },
+  { date:"2025-11-07", valos:{ "DE000UQ0MWF3":{valo:91.49, perfIndice:4.72}, "XS3080432829":{valo:99.18, perfIndice:2.73} } },
+  { date:"2025-11-10", valos:{ "DE000UQ0MWF3":{valo:92.71, perfIndice:6.36}, "XS3080432829":{valo:100.1, perfIndice:4.83} } },
+  { date:"2025-11-11", valos:{ "DE000UQ0MWF3":{valo:93.22, perfIndice:7.17}, "XS3080432829":{valo:101.02, perfIndice:5.81} } },
+  { date:"2025-11-12", valos:{ "DE000UQ0MWF3":{valo:95.1, perfIndice:9.1}, "XS3080432829":{valo:102.2, perfIndice:6.99} } },
+  { date:"2025-11-13", valos:{ "DE000UQ0MWF3":{valo:94.29, perfIndice:8.49}, "XS3080432829":{valo:101.93, perfIndice:5.92} } },
+  { date:"2025-11-14", valos:{ "DE000UQ0MWF3":{valo:93.29, perfIndice:7.99}, "XS3080432829":{valo:99.55, perfIndice:4.85} } },
+  { date:"2025-11-17", valos:{ "DE000UQ0MWF3":{valo:93.0, perfIndice:7.88}, "XS3080432829":{valo:98.0, perfIndice:3.64} } },
+  { date:"2025-11-18", valos:{ "DE000UQ0MWF3":{valo:90.26, perfIndice:5.37}, "XS3080432829":{valo:95.61, perfIndice:1.55} } },
+  { date:"2025-11-19", valos:{ "DE000UQ0MWF3":{valo:89.68, perfIndice:4.9}, "XS3080432829":{valo:95.86, perfIndice:1.87} } },
+  { date:"2025-11-20", valos:{ "DE000UQ0MWF3":{valo:90.35, perfIndice:5.64}, "XS3080432829":{valo:96.5, perfIndice:2.49} } },
+  { date:"2025-11-21", valos:{ "DE000UQ0MWF3":{valo:86.39, perfIndice:1.93}, "XS3080432829":{valo:94.83, perfIndice:1.03} } },
+  { date:"2025-11-24", valos:{ "DE000UQ0MWF3":{valo:88.45, perfIndice:4.08}, "XS3080432829":{valo:95.12, perfIndice:1.46} } },
+  { date:"2025-11-25", valos:{ "DE000UQ0MWF3":{valo:89.45, perfIndice:5.28}, "XS3080432829":{valo:95.98, perfIndice:2.35} } },
+  { date:"2025-11-26", valos:{ "DE000UQ0MWF3":{valo:91.55, perfIndice:7.38}, "XS3080432829":{valo:97.88, perfIndice:4.05} } },
+  { date:"2025-11-27", valos:{ "DE000UQ0MWF3":{valo:91.26, perfIndice:7.71}, "XS3080432829":{valo:97.79, perfIndice:4.01} } },
+  { date:"2025-11-28", valos:{ "DE000UQ0MWF3":{valo:91.6, perfIndice:8.11}, "XS3080432829":{valo:98.08, perfIndice:4.37} } },
+  { date:"2025-12-01", valos:{ "DE000UQ0MWF3":{valo:90.71, perfIndice:7.46}, "XS3080432829":{valo:97.54, perfIndice:4.27} } },
+  { date:"2025-12-02", valos:{ "DE000UQ0MWF3":{valo:92.58, perfIndice:9.61}, "XS3080432829":{valo:97.98, perfIndice:4.69} } },
+  { date:"2025-12-03", valos:{ "DE000UQ0MWF3":{valo:93.03, perfIndice:10.28}, "XS3080432829":{valo:98.1, perfIndice:4.89} } },
+  { date:"2025-12-04", valos:{ "DE000UQ0MWF3":{valo:93.04, perfIndice:10.49}, "XS3080432829":{valo:98.18, perfIndice:5.59} } },
+  { date:"2025-12-05", valos:{ "DE000UQ0MWF3":{valo:93.03, perfIndice:10.39}, "XS3080432829":{valo:98.93, perfIndice:5.62} } },
+  { date:"2025-12-08", valos:{ "DE000UQ0MWF3":{valo:93.67, perfIndice:11.61}, "XS3080432829":{valo:98.88, perfIndice:5.82} } },
+  { date:"2025-12-09", valos:{ "DE000UQ0MWF3":{valo:94.52, perfIndice:12.72}, "XS3080432829":{valo:98.78, perfIndice:5.86} } },
+  { date:"2025-12-10", valos:{ "XS3080432829":{valo:98.91, perfIndice:5.64} } },
+  { date:"2025-12-11", valos:{ "DE000UQ0MWF3":{valo:94.53, perfIndice:12.85}, "XS3080432829":{valo:99.75, perfIndice:6.59} } },
+  { date:"2025-12-12", valos:{ "XS3080432829":{valo:98.89, perfIndice:5.76} } },
+  { date:"2025-12-15", valos:{ "DE000UQ0MWF3":{valo:93.64, perfIndice:11.91}, "XS3080432829":{valo:99.56, perfIndice:6.52} } },
+  { date:"2025-12-16", valos:{ "DE000UQ0MWF3":{valo:92.1, perfIndice:10.43}, "XS3080432829":{valo:98.43, perfIndice:5.85} } },
+  { date:"2025-12-17", valos:{ "DE000UQ0MWF3":{valo:90.81, perfIndice:9.15}, "XS3080432829":{valo:97.5, perfIndice:5.08} } },
+  { date:"2025-12-18", valos:{ "DE000UQ0MWF3":{valo:91.91, perfIndice:10.5}, "XS3080432829":{valo:97.44, perfIndice:6.4} } },
+  { date:"2025-12-19", valos:{ "DE000UQ0MWF3":{valo:92.29, perfIndice:10.94}, "XS3080432829":{valo:99.05, perfIndice:6.78} } },
+  { date:"2025-12-22", valos:{ "DE000UQ0MWF3":{valo:92.11, perfIndice:10.69}, "XS3080432829":{valo:99.28, perfIndice:6.58} } },
+  { date:"2025-12-23", valos:{ "DE000UQ0MWF3":{valo:92.39, perfIndice:11.05}, "XS3080432829":{valo:98.93, perfIndice:6.71} } },
+  { date:"2025-12-24", valos:{ "DE000UQ0MWF3":{valo:92.24, perfIndice:10.88}, "XS3080432829":{valo:99.16, perfIndice:6.62} } },
+  { date:"2025-12-26", valos:{ "XS3080432829":{valo:99.14, perfIndice:6.59} } },
+  { date:"2025-12-29", valos:{ "DE000UQ0MWF3":{valo:92.33, perfIndice:11.2}, "XS3080432829":{valo:99.08, perfIndice:6.52} } },
+  { date:"2025-12-30", valos:{ "DE000UQ0MWF3":{valo:93.2, perfIndice:12.42}, "XS3080432829":{valo:99.83, perfIndice:7.44} } },
+  { date:"2025-12-31", valos:{ "DE000UQ0MWF3":{valo:92.72, perfIndice:12.37}, "XS3080432829":{valo:99.73, perfIndice:7.38} } },
+  { date:"2026-01-02", valos:{ "DE000UQ0MWF3":{valo:94.38, perfIndice:14.82} } },
+  { date:"2026-01-05", valos:{ "DE000UQ0MWF3":{valo:96.59, perfIndice:18.06}, "XS3080432829":{valo:102.39, perfIndice:10.4} } },
+  { date:"2026-01-06", valos:{ "DE000UQ0MWF3":{valo:97.2, perfIndice:18.78}, "XS3080432829":{valo:102.16, perfIndice:10.28} } },
+  { date:"2026-01-07", valos:{ "DE000UQ0MWF3":{valo:99.11, perfIndice:21.57}, "XS3080432829":{valo:102.21, perfIndice:10.23} } },
+  { date:"2026-01-08", valos:{ "DE000UQ0MWF3":{valo:97.57, perfIndice:19.9}, "XS3080432829":{valo:101.68, perfIndice:9.52} } },
+  { date:"2026-01-09", valos:{ "DE000UQ0MWF3":{valo:98.77, perfIndice:21.52}, "XS3080432829":{valo:103.27, perfIndice:11.24} } },
+  { date:"2026-01-12", valos:{ "DE000UQ0MWF3":{valo:99.12, perfIndice:22.18}, "XS3080432829":{valo:103.58, perfIndice:11.73} } },
+  { date:"2026-01-13", valos:{ "DE000UQ0MWF3":{valo:98.53, perfIndice:21.97}, "XS3080432829":{valo:103.81, perfIndice:12.19} } },
+  { date:"2026-01-14", valos:{ "DE000UQ0MWF3":{valo:98.5, perfIndice:22.06}, "XS3080432829":{valo:102.94, perfIndice:11.35} } },
+  { date:"2026-01-15", valos:{ "DE000UQ0MWF3":{valo:99.23, perfIndice:23.04}, "XS3080432829":{valo:103.67, perfIndice:12.22} } },
+  { date:"2026-01-16", valos:{ "DE000UQ0MWF3":{valo:99.65, perfIndice:24.03}, "XS3080432829":{valo:103.63, perfIndice:12.13} } },
+  { date:"2026-01-19", valos:{ "DE000UQ0MWF3":{valo:98.93, perfIndice:24.03}, "XS3080432829":{valo:101.59, perfIndice:10.0} } },
+  { date:"2026-01-20", valos:{ "DE000UQ0MWF3":{valo:97.94, perfIndice:22.46}, "XS3080432829":{valo:100.66, perfIndice:9.34} } },
+  { date:"2026-01-21", valos:{ "DE000UQ0MWF3":{valo:98.33, perfIndice:22.93}, "XS3080432829":{valo:100.83, perfIndice:9.23} } },
+  { date:"2026-01-22", valos:{ "DE000UQ0MWF3":{valo:99.71, perfIndice:24.92}, "XS3080432829":{valo:102.21, perfIndice:10.6} } },
+  { date:"2026-01-23", valos:{ "DE000UQ0MWF3":{valo:100.27, perfIndice:26.01}, "XS3080432829":{valo:101.87, perfIndice:10.32} } },
+  { date:"2026-01-26", valos:{ "DE000UQ0MWF3":{valo:100.31, perfIndice:26.16}, "XS3080432829":{valo:102.24, perfIndice:10.32} } },
+  { date:"2026-01-27", valos:{ "DE000UQ0MWF3":{valo:101.56, perfIndice:28.1}, "XS3080432829":{valo:102.87, perfIndice:10.32} } },
+  { date:"2026-01-28", valos:{ "DE000UQ0MWF3":{valo:100.94, perfIndice:27.55}, "XS3080432829":{valo:101.97, perfIndice:10.22} } },
+  { date:"2026-01-29", valos:{ "DE000UQ0MWF3":{valo:99.79, perfIndice:26.07}, "XS3080432829":{valo:100.86, perfIndice:9.07} } },
+  { date:"2026-01-30", valos:{ "DE000UQ0MWF3":{valo:100.28, perfIndice:26.91}, "XS3080432829":{valo:100.79, perfIndice:10.18} } },
+  { date:"2026-02-02", valos:{ "DE000UQ0MWF3":{valo:101.02, perfIndice:28.03}, "XS3080432829":{valo:101.86, perfIndice:11.32} } },
+  { date:"2026-02-03", valos:{ "DE000UQ0MWF3":{valo:101.54, perfIndice:29.06}, "XS3080432829":{valo:102.55, perfIndice:11.01} } },
+  { date:"2026-02-04", valos:{ "DE000UQ0MWF3":{valo:101.3, perfIndice:26.44}, "XS3080432829":{valo:102.49, perfIndice:9.89} } },
+  { date:"2026-02-05", valos:{ "DE000UQ0MWF3":{valo:99.02, perfIndice:25.78}, "XS3080432829":{valo:100.68, perfIndice:8.98}, "FR0014015IH0":{valo:99.0, perfIndice:0.93} } },
+  { date:"2026-02-06", valos:{ "DE000UQ0MWF3":{valo:100.35, perfIndice:28.37}, "XS3080432829":{valo:100.69, perfIndice:10.67}, "FR0014015IH0":{valo:99.0, perfIndice:2.21} } },
+  { date:"2026-02-09", valos:{ "DE000UQ0MWF3":{valo:102.3, perfIndice:30.32}, "XS3080432829":{valo:102.33, perfIndice:12.06}, "FR0014015IH0":{valo:99.0, perfIndice:4.03} } },
+  { date:"2026-02-10", valos:{ "DE000UQ0MWF3":{valo:102.21, perfIndice:30.0}, "XS3080432829":{valo:103.39, perfIndice:11.63}, "FR0014015IH0":{valo:99.0, perfIndice:3.98} } },
+  { date:"2026-02-11", valos:{ "DE000UQ0MWF3":{valo:103.71, perfIndice:32.34}, "XS3080432829":{valo:102.98, perfIndice:11.01}, "FR0014015IH0":{valo:101.12, perfIndice:4.71} } },
+  { date:"2026-02-12", valos:{ "DE000UQ0MWF3":{valo:102.1, perfIndice:30.29}, "XS3080432829":{valo:102.17, perfIndice:10.14}, "FR0014015IH0":{valo:100.61, perfIndice:4.19} } },
+  { date:"2026-02-13", valos:{ "DE000UQ0MWF3":{valo:102.13, perfIndice:30.58}, "XS3080432829":{valo:101.85, perfIndice:9.79}, "FR0014015IH0":{valo:100.67, perfIndice:3.73} } },
+  { date:"2026-02-16", valos:{ "DE000UQ0MWF3":{valo:102.69, perfIndice:31.21}, "XS3080432829":{valo:101.87, perfIndice:9.72}, "FR0014015IH0":{valo:99.62, perfIndice:3.31} } },
+  { date:"2026-02-17", valos:{ "DE000UQ0MWF3":{valo:103.34, perfIndice:32.4}, "XS3080432829":{valo:102.65, perfIndice:10.49}, "FR0014015IH0":{valo:99.88, perfIndice:3.97} } },
+  { date:"2026-02-18", valos:{ "DE000UQ0MWF3":{valo:104.54, perfIndice:34.81}, "XS3080432829":{valo:104.56, perfIndice:12.61}, "FR0014015IH0":{valo:102.02, perfIndice:6.21} } },
+  { date:"2026-02-19", valos:{ "DE000UQ0MWF3":{valo:103.91, perfIndice:34.56}, "XS3080432829":{valo:103.73, perfIndice:11.73}, "FR0014015IH0":{valo:101.39, perfIndice:5.3} } },
+  { date:"2026-02-20", valos:{ "DE000UQ0MWF3":{valo:103.86, perfIndice:34.51}, "XS3080432829":{valo:105.15, perfIndice:13.25}, "FR0014015IH0":{valo:102.49, perfIndice:6.7} } },
+  { date:"2026-02-23", valos:{ "DE000UQ0MWF3":{valo:103.57, perfIndice:34.1}, "XS3080432829":{valo:104.65, perfIndice:12.7}, "FR0014015IH0":{valo:102.05, perfIndice:6.73} } },
+  { date:"2026-02-24", valos:{ "DE000UQ0MWF3":{valo:103.77, perfIndice:34.56}, "XS3080432829":{valo:104.71, perfIndice:12.54}, "FR0014015IH0":{valo:102.37, perfIndice:7.32} } },
+  { date:"2026-02-25", valos:{ "DE000UQ0MWF3":{valo:104.76, perfIndice:35.67}, "XS3080432829":{valo:105.68, perfIndice:13.76}, "FR0014015IH0":{valo:103.29, perfIndice:8.51} } },
+  { date:"2026-02-26", valos:{ "DE000UQ0MWF3":{valo:103.97, perfIndice:34.25}, "XS3080432829":{valo:105.52, perfIndice:13.6}, "FR0014015IH0":{valo:102.67, perfIndice:7.44} } },
+  { date:"2026-02-27", valos:{ "DE000UQ0MWF3":{valo:103.85, perfIndice:34.67}, "XS3080432829":{valo:104.79, perfIndice:12.94}, "FR0014015IH0":{valo:101.81, perfIndice:6.7} } },
+  { date:"2026-03-02", valos:{ "DE000UQ0MWF3":{valo:101.61, perfIndice:31.68}, "XS3080432829":{valo:104.43, perfIndice:10.03}, "FR0014015IH0":{valo:98.6, perfIndice:3.15} } },
+  { date:"2026-03-03", valos:{ "DE000UQ0MWF3":{valo:97.2, perfIndice:25.81}, "XS3080432829":{valo:97.3, perfIndice:5.84} } },
+  { date:"2026-03-04", valos:{ "DE000UQ0MWF3":{valo:99.05, perfIndice:28.51}, "XS3080432829":{valo:97.43, perfIndice:7.99}, "FR0014015IH0":{valo:95.59, perfIndice:0.42} } },
+  { date:"2026-03-05", valos:{ "DE000UQ0MWF3":{valo:95.86, perfIndice:24.24}, "XS3080432829":{valo:97.58, perfIndice:6.06}, "FR0014015IH0":{valo:92.83, perfIndice:-2.04} } },
+  { date:"2026-03-06", valos:{ "DE000UQ0MWF3":{valo:93.84, perfIndice:21.96}, "XS3080432829":{valo:95.93, perfIndice:6.73}, "FR0014015IH0":{valo:90.34, perfIndice:-4.53} } },
+  { date:"2026-03-09", valos:{ "DE000UQ0MWF3":{valo:93.89, perfIndice:21.81}, "XS3080432829":{valo:96.02, perfIndice:4.15}, "FR0014015IH0":{valo:88.38, perfIndice:-5.82} } },
+  { date:"2026-03-10", valos:{ "DE000UQ0MWF3":{valo:97.08, perfIndice:26.48}, "XS3080432829":{valo:98.71, perfIndice:7.29}, "FR0014015IH0":{valo:92.64, perfIndice:-1.75} } },
+  { date:"2026-03-11", valos:{ "DE000UQ0MWF3":{valo:95.6, perfIndice:24.96}, "XS3080432829":{valo:97.35, perfIndice:6.44}, "FR0014015IH0":{valo:91.77, perfIndice:-2.32} } },
+  { date:"2026-03-12", valos:{ "DE000UQ0MWF3":{valo:94.83, perfIndice:24.16}, "XS3080432829":{valo:96.08, perfIndice:5.24}, "FR0014015IH0":{valo:89.1, perfIndice:-4.45} } },
+  { date:"2026-03-13", valos:{ "DE000UQ0MWF3":{valo:93.48, perfIndice:22.48}, "XS3080432829":{valo:95.15, perfIndice:4.3}, "FR0014015IH0":{valo:87.32, perfIndice:-6.51} } },
+  { date:"2026-03-16", valos:{ "DE000UQ0MWF3":{valo:94.39, perfIndice:23.3}, "XS3080432829":{valo:95.79, perfIndice:4.79}, "FR0014015IH0":{valo:87.05, perfIndice:-5.98} } },
+  { date:"2026-03-17", valos:{ "DE000UQ0MWF3":{valo:95.15, perfIndice:24.01}, "XS3080432829":{valo:96.38, perfIndice:5.27}, "FR0014015IH0":{valo:87.67, perfIndice:-5.64} } },
+  { date:"2026-03-18", valos:{ "DE000UQ0MWF3":{valo:94.59, perfIndice:23.86}, "XS3080432829":{valo:96.45, perfIndice:5.12}, "FR0014015IH0":{valo:87.52, perfIndice:-5.35} } },
+  { date:"2026-03-19", valos:{ "DE000UQ0MWF3":{valo:91.48, perfIndice:20.06}, "XS3080432829":{valo:93.41, perfIndice:2.47}, "FR0014015IH0":{valo:83.55, perfIndice:-9.5} } },
+  { date:"2026-03-20", valos:{ "DE000UQ0MWF3":{valo:89.61, perfIndice:17.87}, "XS3080432829":{valo:90.75, perfIndice:0.18}, "FR0014015IH0":{valo:81.34, perfIndice:-11.09} } },
+  { date:"2026-03-23", valos:{ "DE000UQ0MWF3":{valo:91.78, perfIndice:19.62}, "XS3080432829":{valo:92.4, perfIndice:2.0}, "FR0014015IH0":{valo:84.2, perfIndice:-7.93} } },
+  { date:"2026-03-24", valos:{ "DE000UQ0MWF3":{valo:92.18, perfIndice:20.32}, "XS3080432829":{valo:92.48, perfIndice:1.84}, "FR0014015IH0":{valo:85.03, perfIndice:-7.75} } },
+  { date:"2026-03-25", valos:{ "DE000UQ0MWF3":{valo:94.3, perfIndice:23.04}, "XS3080432829":{valo:93.86, perfIndice:3.36}, "FR0014015IH0":{valo:86.74, perfIndice:-5.82}, "XS3266363558":{valo:86.03, perfIndice:-4.77} } },
+  { date:"2026-03-26", valos:{ "DE000UQ0MWF3":{valo:91.65, perfIndice:20.28}, "XS3080432829":{valo:92.02, perfIndice:1.45}, "FR0014015IH0":{valo:84.69, perfIndice:-8.03}, "XS3266363558":{valo:87.24, perfIndice:-7.19} } },
+  { date:"2026-03-27", valos:{ "DE000UQ0MWF3":{valo:89.39, perfIndice:17.87}, "XS3080432829":{valo:90.65, perfIndice:0.08}, "FR0014015IH0":{valo:82.58, perfIndice:-9.91}, "XS3266363558":{valo:84.25, perfIndice:-9.33} } },
+  { date:"2026-03-30", valos:{ "DE000UQ0MWF3":{valo:89.93, perfIndice:18.19}, "XS3080432829":{valo:90.58, perfIndice:0.46}, "FR0014015IH0":{valo:81.49, perfIndice:-10.21}, "XS3266363558":{valo:82.07, perfIndice:-9.92} } },
+  { date:"2026-03-31", valos:{ "DE000UQ0MWF3":{valo:91.17, perfIndice:19.63}, "XS3080432829":{valo:91.34, perfIndice:1.14}, "FR0014015IH0":{valo:82.98, perfIndice:-9.63}, "XS3266363558":{valo:81.53, perfIndice:-8.96} } },
+  { date:"2026-04-01", valos:{ "DE000UQ0MWF3":{valo:95.41, perfIndice:25.27}, "XS3080432829":{valo:91.55, perfIndice:4.69}, "FR0014015IH0":{valo:87.42, perfIndice:-5.28}, "XS3266363558":{valo:82.3, perfIndice:-4.12} } },
+  { date:"2026-04-02", valos:{ "DE000UQ0MWF3":{valo:94.21, perfIndice:23.91}, "XS3080432829":{valo:94.04, perfIndice:3.78}, "FR0014015IH0":{valo:86.27, perfIndice:-6.72}, "XS3266363558":{valo:86.64, perfIndice:-5.55} } },
+  { date:"2026-04-03", valos:{ "XS3080432829":{valo:94.0, perfIndice:3.76}, "FR0014015IH0":{valo:86.2, perfIndice:-6.72}, "XS3266363558":{valo:85.48, perfIndice:-5.57} } },
+  { date:"2026-04-06", valos:{ "XS3080432829":{valo:94.1, perfIndice:3.72}, "FR0014015IH0":{valo:85.75, perfIndice:-6.72}, "XS3266363558":{valo:85.32, perfIndice:-5.61} } },
+  { date:"2026-04-07", valos:{ "DE000UQ0MWF3":{valo:92.61, perfIndice:21.87}, "XS3080432829":{valo:93.05, perfIndice:2.65}, "FR0014015IH0":{valo:84.01, perfIndice:-8.0}, "XS3266363558":{valo:84.56, perfIndice:-6.82} } },
+  { date:"2026-04-08", valos:{ "DE000UQ0MWF3":{valo:98.63, perfIndice:29.73}, "XS3080432829":{valo:99.13, perfIndice:8.74}, "XS3266363558":{valo:84.29, perfIndice:0.85} } },
+  { date:"2026-04-09", valos:{ "DE000UQ0MWF3":{valo:97.99, perfIndice:29.37}, "XS3080432829":{valo:98.28, perfIndice:8.25}, "FR0014015IH0":{valo:91.34, perfIndice:-0.59}, "XS3266363558":{valo:90.94, perfIndice:0.39} } },
+  { date:"2026-04-10", valos:{ "DE000UQ0MWF3":{valo:97.86, perfIndice:29.28}, "XS3080432829":{valo:99.53, perfIndice:9.03}, "FR0014015IH0":{valo:92.37, perfIndice:0.61}, "XS3266363558":{valo:90.61, perfIndice:1.25} } },
+  { date:"2026-04-13", valos:{ "DE000UQ0MWF3":{valo:97.67, perfIndice:29.43}, "XS3080432829":{valo:99.24, perfIndice:8.92}, "FR0014015IH0":{valo:90.56, perfIndice:-0.24}, "XS3266363558":{valo:90.97, perfIndice:0.84} } },
+  { date:"2026-04-14", valos:{ "DE000UQ0MWF3":{valo:99.83, perfIndice:31.67}, "XS3080432829":{valo:101.02, perfIndice:10.56}, "FR0014015IH0":{valo:93.57, perfIndice:2.28}, "XS3266363558":{valo:91.1, perfIndice:3.18} } },
+  { date:"2026-04-15", valos:{ "DE000UQ0MWF3":{valo:99.29, perfIndice:31.67}, "XS3080432829":{valo:100.61, perfIndice:10.56}, "FR0014015IH0":{valo:91.73, perfIndice:0.39}, "XS3266363558":{valo:92.73, perfIndice:2.36} } },
+  { date:"2026-04-16", valos:{ "DE000UQ0MWF3":{valo:99.38, perfIndice:31.67}, "XS3080432829":{valo:100.47, perfIndice:10.56}, "FR0014015IH0":{valo:92.05, perfIndice:0.31}, "XS3266363558":{valo:92.07, perfIndice:2.07} } },
+  { date:"2026-04-17", valos:{ "DE000UQ0MWF3":{valo:101.82, perfIndice:33.6}, "XS3080432829":{valo:102.82, perfIndice:12.31}, "FR0014015IH0":{valo:96.88, perfIndice:4.25}, "XS3266363558":{valo:92.27, perfIndice:5.76} } },
+  { date:"2026-04-20", valos:{ "DE000UQ0MWF3":{valo:100.93, perfIndice:32.51}, "XS3080432829":{valo:101.58, perfIndice:10.71}, "FR0014015IH0":{valo:92.95, perfIndice:2.12}, "XS3266363558":{valo:94.47, perfIndice:3.87} } },
+  { date:"2026-04-21", valos:{ "DE000UQ0MWF3":{valo:99.44, perfIndice:30.1}, "XS3080432829":{valo:100.92, perfIndice:9.96}, "FR0014015IH0":{valo:92.41, perfIndice:1.1}, "XS3266363558":{valo:93.06, perfIndice:2.34} } },
+  { date:"2026-04-22", valos:{ "DE000UQ0MWF3":{valo:100.37, perfIndice:31.38}, "XS3080432829":{valo:100.74, perfIndice:9.52}, "FR0014015IH0":{valo:92.38, perfIndice:1.18}, "XS3266363558":{valo:91.65, perfIndice:2.71} } },
+  { date:"2026-04-23", valos:{ "DE000UQ0MWF3":{valo:100.98, perfIndice:32.64}, "XS3080432829":{valo:100.15, perfIndice:9.05}, "FR0014015IH0":{valo:92.93, perfIndice:2.33}, "XS3266363558":{valo:91.86, perfIndice:3.77} } },
+  { date:"2026-04-24", valos:{ "DE000UQ0MWF3":{valo:100.26, perfIndice:31.29}, "XS3080432829":{valo:100.06, perfIndice:9.06}, "FR0014015IH0":{valo:93.32, perfIndice:2.77}, "XS3266363558":{valo:92.49, perfIndice:3.61} } },
+  { date:"2026-04-27", valos:{ "DE000UQ0MWF3":{valo:99.01, perfIndice:29.71}, "XS3080432829":{valo:99.72, perfIndice:8.75}, "FR0014015IH0":{valo:91.99, perfIndice:1.72}, "XS3266363558":{valo:91.92, perfIndice:3.11} } },
+  { date:"2026-04-28", valos:{ "DE000UQ0MWF3":{valo:97.64, perfIndice:27.67}, "XS3080432829":{valo:99.4, perfIndice:8.37}, "FR0014015IH0":{valo:90.88, perfIndice:0.66}, "XS3266363558":{valo:91.32, perfIndice:2.29} } },
+  { date:"2026-04-29", valos:{ "DE000UQ0MWF3":{valo:98.12, perfIndice:28.3}, "XS3080432829":{valo:98.93, perfIndice:8.11}, "FR0014015IH0":{valo:90.65, perfIndice:1.14}, "XS3266363558":{valo:90.59, perfIndice:3.22} } },
+  { date:"2026-04-30", valos:{ "DE000UQ0MWF3":{valo:99.75, perfIndice:30.89}, "XS3080432829":{valo:100.06, perfIndice:9.24}, "FR0014015IH0":{valo:91.11, perfIndice:1.86}, "XS3266363558":{valo:91.64, perfIndice:4.82} } },
+  { date:"2026-05-01", valos:{ "DE000UQ0MWF3":{valo:99.74, perfIndice:30.89}, "XS3080432829":{valo:100.44, perfIndice:9.23}, "FR0014015IH0":{valo:91.2, perfIndice:1.86}, "XS3266363558":{valo:93.08, perfIndice:4.8} } },
+  { date:"2026-05-04", valos:{ "DE000UQ0MWF3":{valo:98.37, perfIndice:28.72}, "XS3080432829":{valo:100.36, perfIndice:7.08}, "FR0014015IH0":{valo:88.6, perfIndice:-0.42}, "XS3266363558":{valo:92.19, perfIndice:2.89} } },
+  { date:"2026-05-05", valos:{ "DE000UQ0MWF3":{valo:100.54, perfIndice:32.69}, "XS3080432829":{valo:100.42, perfIndice:9.43}, "FR0014015IH0":{valo:91.07, perfIndice:2.68}, "XS3266363558":{valo:90.9, perfIndice:6.25} } },
+  { date:"2026-05-06", valos:{ "DE000UQ0MWF3":{valo:102.59, perfIndice:35.59}, "XS3080432829":{valo:103.87, perfIndice:12.86}, "FR0014015IH0":{valo:94.52, perfIndice:7.0}, "XS3266363558":{valo:94.06, perfIndice:9.85} } },
+  { date:"2026-05-07", valos:{ "DE000UQ0MWF3":{valo:101.06, perfIndice:33.08}, "XS3080432829":{valo:102.92, perfIndice:11.98}, "FR0014015IH0":{valo:94.5, perfIndice:6.91}, "XS3266363558":{valo:96.14, perfIndice:8.68} } },
+  { date:"2026-05-08", valos:{ "DE000UQ0MWF3":{valo:100.31, perfIndice:31.58}, "XS3080432829":{valo:101.69, perfIndice:10.9}, "FR0014015IH0":{valo:94.79, perfIndice:6.98}, "XS3266363558":{valo:95.1, perfIndice:8.01} } },
+  { date:"2026-05-11", valos:{ "DE000UQ0MWF3":{valo:99.72, perfIndice:31.68}, "XS3080432829":{valo:101.74, perfIndice:10.77}, "FR0014015IH0":{valo:93.75, perfIndice:6.11}, "XS3266363558":{valo:94.15, perfIndice:7.99} } },
+  { date:"2026-05-12", valos:{ "DE000UQ0MWF3":{valo:97.21, perfIndice:28.83}, "XS3080432829":{valo:100.08, perfIndice:8.65}, "FR0014015IH0":{valo:91.11, perfIndice:3.26}, "XS3266363558":{valo:94.19, perfIndice:4.87} } },
+  { date:"2026-05-13", valos:{ "DE000UQ0MWF3":{valo:99.22, perfIndice:32.41}, "XS3080432829":{valo:100.91, perfIndice:9.75}, "FR0014015IH0":{valo:92.93, perfIndice:5.96}, "XS3266363558":{valo:92.07, perfIndice:7.71} } },
+  { date:"2026-05-14", valos:{ "DE000UQ0MWF3":{valo:100.4, perfIndice:34.41}, "XS3080432829":{valo:102.7, perfIndice:11.33}, "FR0014015IH0":{valo:94.0, perfIndice:7.99}, "XS3266363558":{valo:94.35, perfIndice:9.8} } },
+  { date:"2026-05-15", valos:{ "DE000UQ0MWF3":{valo:97.6, perfIndice:30.48}, "XS3080432829":{valo:100.58, perfIndice:9.11}, "FR0014015IH0":{valo:91.12, perfIndice:4.9}, "XS3266363558":{valo:94.73, perfIndice:6.01} } },
+  { date:"2026-05-18", valos:{ "DE000UQ0MWF3":{valo:98.31, perfIndice:31.21}, "XS3080432829":{valo:100.4, perfIndice:9.62}, "FR0014015IH0":{valo:91.01, perfIndice:4.96}, "XS3266363558":{valo:92.21, perfIndice:6.01} } },
+  { date:"2026-05-19", valos:{ "DE000UQ0MWF3":{valo:99.32, perfIndice:30.8}, "XS3080432829":{valo:100.85, perfIndice:9.44}, "FR0014015IH0":{valo:89.6, perfIndice:3.5}, "XS3266363558":{valo:91.92, perfIndice:6.01} } },
+  { date:"2026-05-20", valos:{ "DE000UQ0MWF3":{valo:100.79, perfIndice:35.21}, "XS3080432829":{valo:102.91, perfIndice:12.15}, "FR0014015IH0":{valo:92.85, perfIndice:7.16}, "XS3266363558":{valo:91.75, perfIndice:9.46} } },
+  { date:"2026-05-21", valos:{ "DE000UQ0MWF3":{valo:102.08, perfIndice:35.15}, "XS3080432829":{valo:103.06, perfIndice:11.64}, "FR0014015IH0":{valo:92.18, perfIndice:6.57}, "XS3266363558":{valo:94.5, perfIndice:8.67} } },
+  { date:"2026-05-22", valos:{ "DE000UQ0MWF3":{valo:104.27, perfIndice:38.43}, "XS3080432829":{valo:104.08, perfIndice:12.98}, "FR0014015IH0":{valo:93.96, perfIndice:9.13}, "XS3266363558":{valo:94.21, perfIndice:11.58} } },
+  { date:"2026-05-25", valos:{ "DE000UQ0MWF3":{valo:106.36, perfIndice:41.38}, "XS3080432829":{valo:106.31, perfIndice:15.55}, "FR0014015IH0":{valo:96.17, perfIndice:12.29}, "XS3266363558":{valo:96.72, perfIndice:14.76} } },
+  { date:"2026-05-26", valos:{ "DE000UQ0MWF3":{valo:105.82, perfIndice:40.37}, "XS3080432829":{valo:105.34, perfIndice:14.2}, "FR0014015IH0":{valo:95.43, perfIndice:11.24}, "XS3266363558":{valo:98.11, perfIndice:13.92} } },
+  { date:"2026-05-27", valos:{ "DE000UQ0MWF3":{valo:104.44, perfIndice:39.46}, "XS3080432829":{valo:105.29, perfIndice:13.99}, "FR0014015IH0":{valo:95.36, perfIndice:11.64}, "XS3266363558":{valo:97.63, perfIndice:13.49} } },
+  { date:"2026-05-28", valos:{ "DE000UQ0MWF3":{valo:104.68, perfIndice:40.54}, "XS3080432829":{valo:104.93, perfIndice:13.67}, "FR0014015IH0":{valo:95.74, perfIndice:11.66}, "XS3266363558":{valo:97.21, perfIndice:14.33} } },
+  { date:"2026-05-29", valos:{ "DE000UQ0MWF3":{valo:104.32, perfIndice:40.15}, "XS3080432829":{valo:105.51, perfIndice:14.24}, "FR0014015IH0":{valo:95.55, perfIndice:12.53}, "XS3266363558":{valo:97.69, perfIndice:14.73} } },
+  { date:"2026-06-01", valos:{ "XS3080432829":{valo:104.77, perfIndice:13.7}, "FR0014015IH0":{valo:94.2, perfIndice:11.32}, "XS3266363558":{valo:97.59, perfIndice:13.41} } },
+  { date:"2026-06-02", valos:{ "XS3080432829":{valo:106.49, perfIndice:15.28}, "FR0014015IH0":{valo:96.46, perfIndice:15.06}, "XS3266363558":{valo:97.03, perfIndice:16.98} } },
+  { date:"2026-06-03", valos:{ "XS3080432829":{valo:105.44, perfIndice:14.12}, "FR0014015IH0":{valo:94.3, perfIndice:13.99}, "XS3266363558":{valo:98.51, perfIndice:16.33} } },
+  { date:"2026-06-04", valos:{ "XS3080432829":{valo:106.05, perfIndice:15.04}, "FR0014015IH0":{valo:93.6, perfIndice:13.63}, "XS3266363558":{valo:98.07, perfIndice:16.23} } },
+  { date:"2026-06-05", valos:{ "DE000UQ0MWF3":{valo:99.01, perfIndice:38.74}, "XS3080432829":{valo:105.09, perfIndice:13.85}, "FR0014015IH0":{valo:92.3, perfIndice:10.7}, "XS3266363558":{valo:97.95, perfIndice:13.43} } },
+  { date:"2026-06-08", valos:{ "DE000UQ0MWF3":{valo:99.04, perfIndice:38.69}, "XS3080432829":{valo:105.02, perfIndice:13.76}, "FR0014015IH0":{valo:92.08, perfIndice:11.01}, "XS3266363558":{valo:96.4, perfIndice:13.9} } },
+  { date:"2026-06-09", valos:{ "DE000UQ0MWF3":{valo:97.69, perfIndice:36.26}, "XS3080432829":{valo:104.52, perfIndice:13.21}, "FR0014015IH0":{valo:91.59, perfIndice:10.08}, "XS3266363558":{valo:96.57, perfIndice:12.44} } },
+  { date:"2026-06-10", valos:{ "DE000UQ0MWF3":{valo:96.55, perfIndice:34.88}, "XS3080432829":{valo:103.71, perfIndice:12.11}, "FR0014015IH0":{valo:90.43, perfIndice:8.53}, "XS3266363558":{valo:95.58, perfIndice:11.2} } },
+  { date:"2026-06-11", valos:{ "DE000UQ0MWF3":{valo:98.23, perfIndice:38.2}, "XS3080432829":{valo:104.56, perfIndice:13.06}, "FR0014015IH0":{valo:91.63, perfIndice:10.61}, "XS3266363558":{valo:95.16, perfIndice:13.74} } },
+  { date:"2026-06-12", valos:{ "DE000UQ0MWF3":{valo:99.36, perfIndice:40.63}, "XS3080432829":{valo:107.26, perfIndice:15.94}, "FR0014015IH0":{valo:94.2, perfIndice:14.65}, "XS3266363558":{valo:97.11, perfIndice:17.37} } },
+  { date:"2026-06-15", valos:{ "DE000UQ0MWF3":{valo:99.65, perfIndice:40.01}, "XS3080432829":{valo:108.35, perfIndice:16.98}, "FR0014015IH0":{valo:95.71, perfIndice:15.96}, "XS3266363558":{valo:99.43, perfIndice:18.82} } },
+  { date:"2026-06-16", valos:{ "DE000UQ0MWF3":{valo:100.13, perfIndice:39.43}, "XS3080432829":{valo:108.26, perfIndice:17.6}, "FR0014015IH0":{valo:96.89, perfIndice:16.58}, "XS3266363558":{valo:100.43, perfIndice:18.93} } },
+  { date:"2026-06-17", valos:{ "DE000UQ0MWF3":{valo:101.57, perfIndice:41.11}, "XS3080432829":{valo:109.82, perfIndice:18.84}, "FR0014015IH0":{valo:97.53, perfIndice:17.2}, "XS3266363558":{valo:100.71, perfIndice:20.57} } },
+  { date:"2026-06-18", valos:{ "DE000UQ0MWF3":{valo:102.1, perfIndice:42.45}, "XS3080432829":{valo:110.28, perfIndice:19.37}, "FR0014015IH0":{valo:98.99, perfIndice:19.71}, "XS3266363558":{valo:101.65, perfIndice:23.14} } },
+  { date:"2026-06-19", valos:{ "DE000UQ0MWF3":{valo:103.91, perfIndice:42.62}, "XS3080432829":{valo:109.67, perfIndice:18.9}, "FR0014015IH0":{valo:98.49, perfIndice:18.94}, "XS3266363558":{valo:102.31, perfIndice:22.47} } },
+  { date:"2026-06-22", valos:{ "DE000UQ0MWF3":{valo:103.95, perfIndice:42.86}, "XS3080432829":{valo:109.96, perfIndice:19.48}, "FR0014015IH0":{valo:98.56, perfIndice:19.35}, "XS3266363558":{valo:102.19, perfIndice:23.59} } },
+  { date:"2026-06-23", valos:{ "DE000UQ0MWF3":{valo:102.81, perfIndice:39.98}, "XS3080432829":{valo:108.74, perfIndice:17.32}, "FR0014015IH0":{valo:96.91, perfIndice:16.09}, "XS3266363558":{valo:102.69, perfIndice:20.42} } },
+  { date:"2026-06-24", valos:{ "DE000UQ0MWF3":{valo:101.23, perfIndice:36.89}, "XS3080432829":{valo:108.11, perfIndice:16.71}, "FR0014015IH0":{valo:96.95, perfIndice:16.26}, "XS3266363558":{valo:101.45, perfIndice:18.92} } },
+  { date:"2026-06-25", valos:{ "DE000UQ0MWF3":{valo:101.72, perfIndice:40.64}, "XS3080432829":{valo:108.28, perfIndice:17.54}, "FR0014015IH0":{valo:98.78, perfIndice:17.98}, "XS3266363558":{valo:101.33, perfIndice:20.12} } },
+  { date:"2026-06-26", valos:{ "DE000UQ0MWF3":{valo:102.33, perfIndice:38.57}, "XS3080432829":{valo:108.23, perfIndice:16.01}, "FR0014015IH0":{valo:97.24, perfIndice:15.72}, "XS3266363558":{valo:101.69, perfIndice:17.56} } },
+  { date:"2026-06-29", valos:{ "DE000UQ0MWF3":{valo:102.73, perfIndice:39.14}, "XS3080432829":{valo:108.39, perfIndice:16.48}, "FR0014015IH0":{valo:96.55, perfIndice:15.29}, "XS3266363558":{valo:100.57, perfIndice:18.33} } },
+  { date:"2026-06-30", valos:{ "DE000UQ0MWF3":{valo:104.99, perfIndice:43.66}, "XS3080432829":{valo:110.25, perfIndice:18.91}, "FR0014015IH0":{valo:97.84, perfIndice:17.25}, "XS3266363558":{valo:101.09, perfIndice:21.93} } },
+  { date:"2026-07-01", valos:{ "DE000UQ0MWF3":{valo:103.79, perfIndice:41.86}, "XS3080432829":{valo:109.28, perfIndice:17.91}, "FR0014015IH0":{valo:95.97, perfIndice:15.35}, "XS3266363558":{valo:102.32, perfIndice:20.87} } },
+  { date:"2026-07-02", valos:{ "DE000UQ0MWF3":{valo:105.01, perfIndice:45.59}, "XS3080432829":{valo:109.92, perfIndice:18.79}, "FR0014015IH0":{valo:96.59, perfIndice:16.7}, "XS3266363558":{valo:101.73, perfIndice:21.87} } },
+  { date:"2026-07-03", valos:{ "DE000UQ0MWF3":{valo:106.26, perfIndice:47.66}, "XS3080432829":{valo:110.7, perfIndice:19.97}, "FR0014015IH0":{valo:97.51, perfIndice:17.57}, "XS3266363558":{valo:102.16, perfIndice:23.58} } },
+  { date:"2026-07-06", valos:{ "DE000UQ0MWF3":{valo:106.34, perfIndice:46.56}, "XS3080432829":{valo:110.85, perfIndice:20.02}, "FR0014015IH0":{valo:96.82, perfIndice:17.13}, "XS3266363558":{valo:102.52, perfIndice:23.92} } },
+  { date:"2026-07-07", valos:{ "DE000UQ0MWF3":{valo:102.93, perfIndice:41.89}, "XS3080432829":{valo:109.11, perfIndice:17.7}, "FR0014015IH0":{valo:94.2, perfIndice:13.46}, "XS3266363558":{valo:102.31, perfIndice:19.46} } },
+  { date:"2026-07-08", valos:{ "DE000UQ0MWF3":{valo:101.09, perfIndice:39.43}, "XS3080432829":{valo:107.04, perfIndice:15.42}, "FR0014015IH0":{valo:91.52, perfIndice:10.36}, "XS3266363558":{valo:99.37, perfIndice:16.65} } },
+  { date:"2026-07-09", valos:{ "DE000UQ0MWF3":{valo:102.25, perfIndice:41.24}, "XS3080432829":{valo:108.31, perfIndice:17.43}, "FR0014015IH0":{valo:93.54, perfIndice:13.05}, "XS3266363558":{valo:98.31, perfIndice:19.13} } },
+  { date:"2026-07-10", valos:{ "DE000UQ0MWF3":{valo:101.91, perfIndice:40.39}, "XS3080432829":{valo:108.2, perfIndice:16.99}, "FR0014015IH0":{valo:93.65, perfIndice:13.11}, "XS3266363558":{valo:99.61, perfIndice:18.63} } },
+  { date:"2026-07-13", valos:{ "DE000UQ0MWF3":{valo:101.53, perfIndice:40.34}, "XS3080432829":{valo:108.17, perfIndice:16.95}, "FR0014015IH0":{valo:92.84, perfIndice:12.4}, "XS3266363558":{valo:99.23, perfIndice:17.4} } },
+  { date:"2026-07-14", valos:{ "DE000UQ0MWF3":{valo:102.08, perfIndice:40.23}, "XS3080432829":{valo:108.28, perfIndice:17.15}, "FR0014015IH0":{valo:92.86, perfIndice:12.48}, "XS3266363558":{valo:98.57, perfIndice:18.2} } },
+  { date:"2026-07-15", valos:{ "DE000UQ0MWF3":{valo:100.51, perfIndice:39.96}, "XS3080432829":{valo:107.81, perfIndice:17.39}, "FR0014015IH0":{valo:93.23, perfIndice:12.37}, "XS3266363558":{valo:98.74, perfIndice:18.29} } },
+  { date:"2026-07-16", valos:{ "DE000UQ0MWF3":{valo:99.96, perfIndice:37.78}, "XS3080432829":{valo:107.72, perfIndice:16.83}, "FR0014015IH0":{valo:93.11, perfIndice:12.52}, "XS3266363558":{valo:98.01, perfIndice:16.64} } },
+  { date:"2026-07-17", valos:{ "DE000UQ0MWF3":{valo:99.53, perfIndice:37.78}, "XS3080432829":{valo:107.91, perfIndice:16.83}, "XS3266363558":{valo:97.93, perfIndice:16.64}, "FR0014015IH0":{valo:91.89, perfIndice:10.82} } },
+  { date:"2026-07-20", valos:{ "DE000UQ0MWF3":{valo:99.48, perfIndice:37.65}, "XS3080432829":{valo:106.74, perfIndice:15.38}, "XS3266363558":{valo:96.89, perfIndice:14.96} } },
+  { date:"2026-07-23", valos:{ "FR0014015IH0":{valo:90.68, perfIndice:9.06} } },
+  { date:"2026-07-24", valos:{ "DE000UQ0MWF3":{valo:100.12, perfIndice:38.55}, "XS3080432829":{valo:107.78, perfIndice:15.59}, "XS3266363558":{valo:97.29, perfIndice:15.97} } },
+  { date:"2026-07-27", valos:{ "FR0014015IH0":{valo:90.74, perfIndice:9.02} } },
+  { date:"2026-07-28", valos:{ "DE000UQ0MWF3":{valo:99.14, perfIndice:37.25}, "XS3080432829":{valo:107.91, perfIndice:16.52}, "XS3266363558":{valo:97.64, perfIndice:16.12} } },
+  { date:"2026-08-03", valos:{ "FR0014015IH0":{valo:95.15, perfIndice:14.90} } },
+  { date:"2026-08-04", valos:{ "DE000UQ0MWF3":{valo:103.90, perfIndice:39.68}, "XS3080432829":{valo:110.11, perfIndice:19.60}, "XS3266363558":{valo:99.69, perfIndice:19.54} } },
+  { date:"2026-08-12", valos:{ "FR0014015IH0":{valo:96.37, perfIndice:16.33} } },
+  { date:"2026-08-13", valos:{ "DE000UQ0MWF3":{valo:105.62, perfIndice:45.87}, "XS3080432829":{valo:112.08, perfIndice:23.09}, "XS3266363558":{valo:101.22, perfIndice:23.95} } }
+];
+// Marktreferentie EURO STOXX 50 (SX5E / ^STOXX50E) — dagelijkse slotkoersen, bron Yahoo Finance.
+// Geen onderliggende waarde van de FIC-producten : weergegeven als marktvergelijking (dividend-herbelegde index, zonder decrement).
+const STOXX50 = [
+  {date:"2025-08-28", close:5396.73}, {date:"2025-09-01", close:5367.08}, {date:"2025-09-02", close:5291.04}, {date:"2025-09-08", close:5362.81}, {date:"2025-09-09", close:5368.82}, {date:"2025-09-10", close:5361.47}, {date:"2025-09-11", close:5386.77}, {date:"2025-09-12", close:5390.71}, {date:"2025-09-15", close:5440.4}, {date:"2025-09-16", close:5372.31},
+  {date:"2025-09-17", close:5369.7}, {date:"2025-09-18", close:5456.67}, {date:"2025-09-19", close:5458.42}, {date:"2025-09-22", close:5442.05}, {date:"2025-09-23", close:5472.39}, {date:"2025-09-24", close:5464.56}, {date:"2025-09-25", close:5444.89}, {date:"2025-09-26", close:5499.7}, {date:"2025-09-29", close:5506.85}, {date:"2025-09-30", close:5529.96},
+  {date:"2025-10-01", close:5581.21}, {date:"2025-10-02", close:5645.81}, {date:"2025-10-03", close:5651.71}, {date:"2025-10-06", close:5628.72}, {date:"2025-10-07", close:5613.62}, {date:"2025-10-08", close:5649.73}, {date:"2025-10-09", close:5625.56}, {date:"2025-10-10", close:5531.32}, {date:"2025-10-13", close:5568.19}, {date:"2025-10-14", close:5552.05},
+  {date:"2025-10-15", close:5605.03}, {date:"2025-10-16", close:5652.01}, {date:"2025-10-17", close:5607.39}, {date:"2025-10-20", close:5680.93}, {date:"2025-10-21", close:5686.83}, {date:"2025-10-22", close:5639.21}, {date:"2025-10-23", close:5668.33}, {date:"2025-10-24", close:5674.5}, {date:"2025-10-27", close:5711.06}, {date:"2025-10-28", close:5704.35},
+  {date:"2025-10-29", close:5705.81}, {date:"2025-10-30", close:5699.18}, {date:"2025-10-31", close:5662.04}, {date:"2025-11-03", close:5679.25}, {date:"2025-11-04", close:5660.2}, {date:"2025-11-05", close:5669.13}, {date:"2025-11-06", close:5611.18}, {date:"2025-11-07", close:5566.53}, {date:"2025-11-10", close:5664.46}, {date:"2025-11-11", close:5725.7},
+  {date:"2025-11-12", close:5787.31}, {date:"2025-11-13", close:5742.79}, {date:"2025-11-14", close:5693.77}, {date:"2025-11-17", close:5640.94}, {date:"2025-11-18", close:5534.71}, {date:"2025-11-19", close:5542.05}, {date:"2025-11-20", close:5569.92}, {date:"2025-11-21", close:5515.09}, {date:"2025-11-24", close:5528.67}, {date:"2025-11-25", close:5573.91},
+  {date:"2025-11-26", close:5655.58}, {date:"2025-11-27", close:5653.17}, {date:"2025-11-28", close:5668.17}, {date:"2025-12-01", close:5667.48}, {date:"2025-12-02", close:5686.17}, {date:"2025-12-03", close:5694.56}, {date:"2025-12-04", close:5718.08}, {date:"2025-12-05", close:5723.93}, {date:"2025-12-08", close:5725.59}, {date:"2025-12-09", close:5718.32},
+  {date:"2025-12-10", close:5708.12}, {date:"2025-12-11", close:5753.96}, {date:"2025-12-12", close:5720.71}, {date:"2025-12-15", close:5752.52}, {date:"2025-12-16", close:5717.83}, {date:"2025-12-17", close:5681.67}, {date:"2025-12-18", close:5741.71}, {date:"2025-12-19", close:5760.35}, {date:"2025-12-22", close:5743.69}, {date:"2025-12-23", close:5749.28},
+  {date:"2025-12-29", close:5751.71}, {date:"2025-12-30", close:5796.22}, {date:"2026-01-05", close:5923.69}, {date:"2026-01-06", close:5931.79}, {date:"2026-01-07", close:5923.57}, {date:"2026-01-08", close:5904.32}, {date:"2026-01-09", close:5997.47}, {date:"2026-01-12", close:6016.3}, {date:"2026-01-13", close:6029.83}, {date:"2026-01-14", close:6005.05},
+  {date:"2026-01-15", close:6041.14}, {date:"2026-01-16", close:6029.45}, {date:"2026-01-19", close:5925.82}, {date:"2026-01-20", close:5892.08}, {date:"2026-01-21", close:5882.88}, {date:"2026-01-22", close:5956.17}, {date:"2026-01-23", close:5948.2}, {date:"2026-01-26", close:5957.8}, {date:"2026-01-27", close:5994.59}, {date:"2026-01-28", close:5933.2},
+  {date:"2026-01-29", close:5891.95}, {date:"2026-01-30", close:5947.81}, {date:"2026-02-02", close:6007.51}, {date:"2026-02-03", close:5995.35}, {date:"2026-02-04", close:5970.47}, {date:"2026-02-05", close:5925.7}, {date:"2026-02-06", close:5998.4}, {date:"2026-02-09", close:6059.01}, {date:"2026-02-10", close:6047.06}, {date:"2026-02-11", close:6035.64},
+  {date:"2026-02-12", close:6011.29}, {date:"2026-02-13", close:5985.23}, {date:"2026-02-16", close:5978.88}, {date:"2026-02-17", close:6021.85}, {date:"2026-02-18", close:6103.37}, {date:"2026-02-19", close:6059.62}, {date:"2026-02-20", close:6131.31}, {date:"2026-02-23", close:6113.92}, {date:"2026-02-24", close:6116.6}, {date:"2026-02-25", close:6173.32},
+  {date:"2026-02-26", close:6161.56}, {date:"2026-02-27", close:6138.41}, {date:"2026-03-02", close:5986.93}, {date:"2026-03-03", close:5771.73}, {date:"2026-03-04", close:5870.92}, {date:"2026-03-05", close:5782.89}, {date:"2026-03-06", close:5719.9}, {date:"2026-03-09", close:5685.2}, {date:"2026-03-10", close:5837.17}, {date:"2026-03-11", close:5794.68},
+  {date:"2026-03-12", close:5748.89}, {date:"2026-03-13", close:5716.61}, {date:"2026-03-16", close:5739.01}, {date:"2026-03-17", close:5769.25}, {date:"2026-03-18", close:5736.85}, {date:"2026-03-19", close:5613.83}, {date:"2026-03-20", close:5501.28}, {date:"2026-03-23", close:5574.32}, {date:"2026-03-24", close:5581.29}, {date:"2026-03-25", close:5649.33},
+  {date:"2026-03-26", close:5565.93}, {date:"2026-03-27", close:5505.8}, {date:"2026-03-30", close:5541.79}, {date:"2026-03-31", close:5569.73}, {date:"2026-04-01", close:5732.71}, {date:"2026-04-02", close:5692.86}, {date:"2026-04-07", close:5633.22}, {date:"2026-04-08", close:5913.37}, {date:"2026-04-09", close:5896.29}, {date:"2026-04-10", close:5926.11},
+  {date:"2026-04-13", close:5905.02}, {date:"2026-04-14", close:5984.51}, {date:"2026-04-15", close:5940.34}, {date:"2026-04-16", close:5933.28}, {date:"2026-04-17", close:6057.71}, {date:"2026-04-20", close:5982.63}, {date:"2026-04-21", close:5930.25}, {date:"2026-04-22", close:5906.22}, {date:"2026-04-23", close:5894.73}, {date:"2026-04-24", close:5883.48},
+  {date:"2026-04-27", close:5860.32}, {date:"2026-04-28", close:5836.1}, {date:"2026-04-29", close:5816.48}, {date:"2026-04-30", close:5881.51}, {date:"2026-05-04", close:5763.61}, {date:"2026-05-05", close:5869.63}, {date:"2026-05-06", close:6027.13}, {date:"2026-05-07", close:5972.65}, {date:"2026-05-08", close:5911.53}, {date:"2026-05-11", close:5895.45},
+  {date:"2026-05-12", close:5808.45}, {date:"2026-05-13", close:5861.07}, {date:"2026-05-15", close:5827.76}, {date:"2026-05-18", close:5849.0}, {date:"2026-05-19", close:5851.16}, {date:"2026-05-20", close:5976.07}, {date:"2026-05-21", close:5960.32}, {date:"2026-05-22", close:6019.45}, {date:"2026-05-26", close:6064.15}, {date:"2026-05-27", close:6070.54},
+  {date:"2026-05-28", close:6055.11}, {date:"2026-05-29", close:6050.54}, {date:"2026-06-01", close:6034.95}, {date:"2026-06-02", close:6107.85}, {date:"2026-06-03", close:6053.57}, {date:"2026-06-04", close:6103.33}, {date:"2026-06-05", close:6062.07}, {date:"2026-06-08", close:6062.29}, {date:"2026-06-09", close:6049.74}, {date:"2026-06-10", close:6009.95},
+  {date:"2026-06-11", close:6056.96}, {date:"2026-06-12", close:6187.63}, {date:"2026-06-15", close:6229.43}, {date:"2026-06-16", close:6257.42}, {date:"2026-06-17", close:6300.07}, {date:"2026-06-18", close:6323.27}, {date:"2026-06-19", close:6293.13}, {date:"2026-06-22", close:6311.32}, {date:"2026-06-23", close:6230.55}, {date:"2026-06-24", close:6214.7},
+  {date:"2026-06-25", close:6267.53}, {date:"2026-06-26", close:6221.55}, {date:"2026-06-29", close:6231.63}, {date:"2026-06-30", close:6328.09}, {date:"2026-07-01", close:6282.5}, {date:"2026-07-02", close:6360.47}, {date:"2026-07-03", close:6412.68}, {date:"2026-07-06", close:6398.01}, {date:"2026-07-07", close:6319.86}, {date:"2026-07-08", close:6204.91},
+  {date:"2026-07-09", close:6284.27}, {date:"2026-07-10", close:6269.97}, {date:"2026-07-13", close:6271.02}, {date:"2026-07-14", close:6280.19}, {date:"2026-07-15", close:6265.58}, {date:"2026-07-16", close:6283.61}, {date:"2026-07-17", close:6230.87}, {date:"2026-07-20", close:6227.4}, {date:"2026-07-23", close:6210.17}, {date:"2026-07-24", close:6280.94},
+  {date:"2026-07-27", close:6282.21}, {date:"2026-07-28", close:6289.51},
+];
+
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const EMET_COLORS = {"UBS":cssv('--ubs'),"BNP Paribas":cssv('--bnp'),"Natixis":cssv('--nat')};
+const fmtEur = v => (v/1000).toLocaleString('nl-NL',{maximumFractionDigits:0})+" k€";
+function latestFor(id){
+  for(let i=OBS.length-1;i>=0;i--){
+    const v = OBS[i].valos[id];
+    if(v) return {...v, date:OBS[i].date};
+  }
+  return null;
+}
+const lastDate = OBS[OBS.length-1].date;
+const P = REF.map(r=>{
+  const o = latestFor(r.id);
+  const mv = r.notionnel * o.valo/100;
+  const niveauActuel = 100*(1+o.perfIndice/100);
+  const distCoupon = (niveauActuel - r.barriereCoupon)/niveauActuel*100;
+  const distCapital = (niveauActuel - r.barriereCapital)/niveauActuel*100;
+  const valeurPot = 100 + r.couponPct*r.clickYears;
+  const dureeRes = (new Date(r.cible)-new Date(o.date))/(1000*3600*24*365.25);
+  const multiple = valeurPot/o.valo;
+  const perfAn = (multiple-1)/dureeRes;
+  return {...r, valo:o.valo, perfIndice:o.perfIndice, dateRelevé:o.date, mv, niveauActuel, distCoupon, distCapital, valeurPot, dureeRes, multiple, perfAn, rating:RATINGS[r.emetteur]||''};
+});
+const totalNom = P.reduce((s,p)=>s+p.notionnel,0);
+const totalMv  = P.reduce((s,p)=>s+p.mv,0);
+const portRet  = (totalMv/totalNom-1)*100;
+const typeLabel = p => /digit/i.test(p.nom) ? "Digit" : /click/i.test(p.nom) ? "Click" : "";
+const prodLabel = p => `${p.emetteur} ${typeLabel(p)} ${p.indiceShort}`;
+const emetteurAbbrev = p => p.emetteur === "BNP Paribas" ? "BNPP" : p.emetteur;
+const compactLabel = p => [typeLabel(p)+' '+emetteurAbbrev(p), p.indiceShort];
+const shortLabel = p => typeLabel(p)+' '+emetteurAbbrev(p)+' '+p.indiceShort;
+const asofDate = P.reduce((mx,p)=>p.dateRelevé>mx?p.dateRelevé:mx, lastDate);
+document.getElementById('asof').textContent =
+  "Laatste opname: "+new Date(asofDate).toLocaleDateString('nl-NL',{day:'2-digit',month:'long',year:'numeric'})
+  +" · "+P.length+" producten · nominaal "+fmtEur(totalNom);
+const kpis=[
+  {lbl:"Belegd nominaal", val:fmtEur(totalNom), sub:P.length+" producten"},
+  {lbl:"Marktwaarde", val:fmtEur(totalMv), sub:"op laatste opname"},
+  {lbl:"Totale performance", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:"t.o.v. nominaal", cls:portRet>=0?"pos":"neg"},
+  {lbl:"Min. kapitaalmarge", val:"−"+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+"%", sub:"voor kapitaalverlies"},
+];
+document.getElementById('kpis').innerHTML = kpis.map(k=>
+  `<div class="kpi"><div class="lbl">${k.lbl}</div><div class="val ${k.cls||''}">${k.val}</div><div class="sub">${k.sub}</div></div>`).join('');
+Chart.defaults.font.family="Inter, Segoe UI, system-ui, sans-serif";
+Chart.defaults.font.size=12;
+Chart.defaults.color=cssv('--ink2');
+Chart.defaults.maintainAspectRatio=false;
+const DataLabelsPlugin = {
+  id:'dataLabelsMaison',
+  afterDatasetsDraw(chart){
+    const opts = chart.config.options.plugins && chart.config.options.plugins.datalabels;
+    if(!opts || !opts.display) return;
+    const {ctx} = chart;
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta = chart.getDatasetMeta(di);
+      if(meta.hidden) return;
+      meta.data.forEach((el,i)=>{
+        const raw = ds.data[i];
+        if(raw===null||raw===undefined) return;
+        const text = opts.formatter ? opts.formatter(raw,{datasetIndex:di,dataIndex:i}) : String(raw);
+        if(text===null||text===undefined) return;
+        ctx.save();
+        ctx.font = (opts.font&&opts.font.weight==='700'?'700 ':'')+ (opts.font&&opts.font.size||11)+'px Inter, Segoe UI, system-ui, sans-serif';
+        ctx.fillStyle = typeof opts.color==='function' ? opts.color({datasetIndex:di,dataIndex:i}) : (opts.color||'#fff');
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        let x=el.x, y=el.y;
+        if(chart.config.type==='bar' && chart.options.indexAxis==='y'){
+          x = el.x + 6; y = el.y; ctx.textAlign='left';
+        } else if(chart.config.type==='bar' && opts.inside){
+          y = (el.y + el.base) / 2;
+        } else if(chart.config.type==='bar'){
+          y = raw>=0 ? el.y - 8 : el.base - 8;
+        } else if(chart.config.type==='doughnut'){
+          const midAngle = (el.startAngle + el.endAngle) / 2;
+          const midRadius = (el.innerRadius + el.outerRadius) / 2;
+          x = el.x + Math.cos(midAngle) * midRadius;
+          y = el.y + Math.sin(midAngle) * midRadius;
+        }
+        ctx.fillText(text, x, y);
+        ctx.restore();
+      });
+    });
+  }
+};
+Chart.register(DataLabelsPlugin);
+Chart.defaults.set('plugins.datalabels',{display:false});
+const byEmet={};
+P.forEach(p=>byEmet[p.emetteur]=(byEmet[p.emetteur]||0)+p.mv);
+new Chart(document.getElementById('cEmet'),{type:'doughnut',data:{labels:Object.keys(byEmet),
+  datasets:[{data:Object.values(byEmet),backgroundColor:Object.keys(byEmet).map(e=>EMET_COLORS[e]),borderWidth:2,borderColor:'#fff'}]},
+  options:{cutout:'60%',plugins:{legend:{display:false},
+    datalabels:{display:true,color:'#fff',clamp:true,clip:false,anchor:'center',align:'center',font:{weight:'700',size:13},formatter:(v)=>(v/totalMv*100).toFixed(1)+"%"},
+    tooltip:{callbacks:{label:c=>c.label+": "+fmtEur(c.raw)+" ("+(c.raw/totalMv*100).toFixed(1)+"%)"}}}}});
+document.getElementById('emetRatings').innerHTML = `<div class="custom-legend">`+Object.keys(byEmet).map(e=>
+  `<div class="item"><span class="sw" style="background:${EMET_COLORS[e]};width:9px;height:9px;border-radius:2px;display:inline-block"></span>
+   <span><b>${e}</b> — ${RATINGS[e]||'rating niet vermeld'}</span></div>`).join('')+`</div>
+   <div style="font-size:9.5px;color:var(--muted);margin-top:4px">Indicatieve ratings, te herverifiëren voor elk gebruik in cliëntadvies.</div>`;
+new Chart(document.getElementById('cSj'),{type:'doughnut',data:{labels:P.map(p=>p.sousjacent),
+  datasets:[{data:P.map(p=>p.mv),backgroundColor:P.map(p=>cssv(p.color.replace('var(','').replace(')',''))),borderWidth:2,borderColor:'#fff'}]},
+  options:{cutout:'60%',layout:{padding:{top:4}},plugins:{legend:{display:false},
+    datalabels:{display:true,color:'#fff',clamp:true,clip:false,anchor:'center',align:'center',font:{weight:'700',size:12},formatter:(v)=>(v/totalMv*100).toFixed(1)+"%"},
+    tooltip:{callbacks:{label:c=>P[c.dataIndex].indice+" ("+P[c.dataIndex].sousjacent+"): "+fmtEur(c.raw)+" ("+(c.raw/totalMv*100).toFixed(1)+"%)"}}}}});
+document.getElementById('sjLegend').innerHTML = `<div class="custom-legend">`+P.map(p=>
+  `<div class="item"><span class="sw" style="background:${cssv(p.color.replace('var(','').replace(')',''))};width:9px;height:9px;border-radius:2px;display:inline-block"></span>
+   <span><b>${p.indice}</b> <span style="color:var(--muted)">— ${p.sousjacent}</span></span></div>`).join('')+`</div>`;
+const expoLabels = P.map(p => compactLabel(p));
+new Chart(document.getElementById('cExp'),{type:'bar',data:{labels:expoLabels,
+  datasets:[{data:P.map(p=>p.mv),backgroundColor:P.map(p=>cssv(p.color.replace('var(','').replace(')',''))),borderRadius:5}]},
+  options:{indexAxis:'y',plugins:{legend:{display:false},
+    datalabels:{display:true,anchor:'end',align:'end',color:cssv('--ink2'),font:{weight:'700',size:11},formatter:(v)=>(v/totalMv*100).toFixed(1)+"%"},
+    tooltip:{callbacks:{label:c=>fmtEur(c.raw)+" ("+(c.raw/totalMv*100).toFixed(1)+"%)"}}},
+    scales:{x:{ticks:{callback:v=>v/1000+"k"},grid:{color:cssv('--line')},grace:'14%'},
+      y:{grid:{display:false},ticks:{font:{size:10.5}}}}}});
+new Chart(document.getElementById('cPerf'),{type:'bar',data:{labels:P.map(p=>compactLabel(p)),
+  datasets:[
+    {label:'Productwaardering (% nominaal, basis 100)',data:P.map(p=>p.valo-100),backgroundColor:cssv('--ink'),borderRadius:5},
+    {label:'Indexperformance sinds uitgifte',data:P.map(p=>p.perfIndice),backgroundColor:cssv('--muted'),borderRadius:5},
+  ]},
+  options:{layout:{padding:{top:20,bottom:16}},plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}},
+    datalabels:{display:true,color:cssv('--ink2'),font:{weight:'700',size:11},
+      formatter:(v)=>(v>=0?'+':'')+v.toFixed(1)+"%"},
+    tooltip:{callbacks:{title:items=>items.length?prodLabel(P[items[0].dataIndex]):'',label:c=>c.dataset.label+": "+(c.raw>=0?'+':'')+c.raw.toFixed(2)+(c.datasetIndex===0?" pts":"%")}}},
+    scales:{y:{ticks:{callback:v=>(v>=0?'+':'')+v+"%"},grid:{color:cssv('--line')},grace:'12%'},x:{grid:{display:false},ticks:{font:{size:10},maxRotation:0,minRotation:0,autoSkip:false}}}}});
+const palette=P.map(p=>cssv(p.color.replace('var(','').replace(')','')));
+const allDates = Array.from(new Set([
+  ...P.map(p=>p.emission),
+  ...OBS.map(o=>o.date)
+])).sort();
+// Ruwe EURO STOXX 50-reeks afgestemd op allDates (null indien geen notering, bv. beursfeestdagen) ; herbasis gebeurt bij weergave.
+const stoxxByDate = Object.fromEntries(STOXX50.map(o=>[o.date,o.close]));
+const stoxxRaw = allDates.map(d=>stoxxByDate[d] ?? null);
+const fmtD = d => new Date(d).toLocaleDateString('nl-NL',{day:'2-digit',month:'short',yy:'2-digit'});
+const quarterLabel = d => { const dt=new Date(d); return "T"+(Math.floor(dt.getMonth()/3)+1)+" "+dt.getFullYear(); };
+function quarterTicks(dates){
+  const qMonths=[0,2,5,8]; // januari, maart, juni, september (0-geïndexeerd)
+  const seen=new Set();
+  return dates.map(d=>{
+    const dt=new Date(d);
+    const key=dt.getFullYear()+'-'+dt.getMonth();
+    if(qMonths.includes(dt.getMonth()) && !seen.has(key)){ seen.add(key); return dt.toLocaleDateString('nl-NL',{month:'short',year:'2-digit'}); }
+    return '';
+  });
+}
+// Numerieke tijdstempel, voor een echte lineaire tijdsas — vermijdt de misleidende afstand van een categorische as
+// wanneer de meetfrequentie in de tijd varieert (bv. minder frequente metingen bij de start van de opvolging).
+const ts = d => new Date(d).getTime();
+function quarterTickValues(dates){
+  const qMonths=[0,2,5,8];
+  const seen=new Set();
+  const out=[];
+  dates.forEach(d=>{
+    const dt=new Date(d);
+    const key=dt.getFullYear()+'-'+dt.getMonth();
+    if(qMonths.includes(dt.getMonth()) && !seen.has(key)){
+      seen.add(key);
+      out.push({value:ts(d), label:dt.toLocaleDateString('nl-NL',{month:'short',year:'2-digit'})});
+    }
+  });
+  return out;
+}
+function seriesFor(p){
+  return allDates.map(d=>{
+    if(d < p.emission) return null;
+    if(d === p.emission) {
+      const o = OBS.find(x=>x.date===d);
+      return (o && o.valos[p.id]) ? o.valos[p.id].valo : 100;
+    }
+    const o = OBS.find(x=>x.date===d);
+    return (o && o.valos[p.id]) ? o.valos[p.id].valo : null;
+  });
+}
+const prodSeries = P.map(seriesFor);
+// Nominaal gewogen gemiddelde over alle reeds uitgegeven producten.
+// Is een product op een bepaalde dag niet gequoteerd (gedeeltelijke opname), dan nemen we zijn
+// laatst bekende waardering over: de korf blijft zo volledig en het gemiddelde zakt niet
+// artificieel naar de waarde van het enige gequoteerde product.
+const lastKnownValo = P.map(()=>null);
+const portAvg = allDates.map((d,di)=>{
+  let num=0,den=0;
+  P.forEach((p,pi)=>{
+    const v = prodSeries[pi][di];
+    if(v!==null) lastKnownValo[pi]=v;
+    if(d < p.emission) return;
+    const val = lastKnownValo[pi];
+    if(val!==null){ num+=val*p.notionnel; den+=p.notionnel; }
+  });
+  return den? num/den : null;
+});
+function portAvgAt(targetDate){
+  let val=null;
+  for(let i=0;i<allDates.length;i++){
+    if(allDates[i] > targetDate) break;
+    if(portAvg[i]!=null) val=portAvg[i];
+  }
+  return val;
+}
+function shiftMonths(dateStr,n){
+  const d=new Date(dateStr+'T00:00:00Z');
+  const total = d.getUTCMonth()+n;
+  const y = d.getUTCFullYear() + Math.floor(total/12);
+  const m = ((total%12)+12)%12;
+  const day = d.getUTCDate();
+  const dt = new Date(Date.UTC(y,m,day));
+  return dt.toISOString().slice(0,10);
+}
+const portNow = portAvg[portAvg.length-1];
+const perfPeriods = [
+  {lbl:"YTD", cutoff: asofDate.slice(0,4)+"-01-01"},
+  {lbl:"3 maanden", cutoff: shiftMonths(asofDate,-3)},
+  {lbl:"6 maanden", cutoff: shiftMonths(asofDate,-6)},
+  {lbl:"1 jaar", cutoff: shiftMonths(asofDate,-12)},
+  {lbl:"Sinds start", cutoff: allDates[0]},
+].map(p=>{
+  const base = portAvgAt(p.cutoff);
+  if(base==null || p.cutoff < allDates[0]) return {...p, val:null};
+  return {...p, val:(portNow/base-1)*100};
+});
+// Echte lineaire tijdsas (in timestamp): de afstand tussen metingen volgt zo de kalender,
+// ook als de meetfrequentie in de tijd varieerde (in tegenstelling tot een categorische as per index).
+const qTicksAll = quarterTickValues(allDates);
+new Chart(document.getElementById('cTime'),{type:'line',
+  data:{
+    datasets:[
+      ...P.map((p,i)=>({label:shortLabel(p),data:allDates.map((d,di)=>({x:ts(d),y:prodSeries[i][di]})).filter(pt=>pt.y!=null),borderColor:palette[i],backgroundColor:palette[i],borderDash:[4,3],tension:.25,spanGaps:true,pointRadius:0,pointHoverRadius:4,borderWidth:1.5})),
+      {label:'Portefeuillegemiddelde',data:allDates.map((d,di)=>({x:ts(d),y:portAvg[di]})).filter(pt=>pt.y!=null),borderColor:cssv('--ink'),backgroundColor:cssv('--ink'),tension:.25,spanGaps:true,pointRadius:0,pointHoverRadius:4,borderWidth:3.5}
+    ]},
+  options:{plugins:{legend:{display:false},
+    tooltip:{callbacks:{
+      title:items=>items.length?fmtD(items[0].parsed.x):'',
+      label:c=>c.raw.y==null?null:c.dataset.label+": "+c.raw.y.toFixed(1)+"%"
+    }}},
+    scales:{
+      y:{min:70,max:130,ticks:{callback:v=>v+"%"},grid:{color:cssv('--line')}},
+      x:{type:'linear',min:ts(allDates[0]),max:ts(allDates[allDates.length-1]),grid:{display:false},
+        afterBuildTicks:axis=>{ axis.ticks = qTicksAll.map(q=>({value:q.value})); },
+        ticks:{autoSkip:false,maxRotation:0,callback:(value)=>{ const f=qTicksAll.find(q=>q.value===value); return f?f.label:''; }}}
+    }}});
+document.getElementById('cTimeLegend').innerHTML = `<div class="frise-legend">`+
+  P.map((p,i)=>`<div class="item"><span class="sw" style="background:${palette[i]};width:9px;height:9px;border-radius:50%;display:inline-block"></span><span>${shortLabel(p)}</span></div>`).join('')+
+  `<div class="item"><span class="sw" style="background:${cssv('--ink')};width:9px;height:9px;border-radius:50%;display:inline-block"></span><span>Portefeuillegemiddelde</span></div>`+
+  `</div>`;
+document.getElementById('perfStats').innerHTML = perfPeriods.map(p=>{
+  const val = p.val==null ? "n.d." : (p.val>=0?"+":"")+p.val.toFixed(1)+"%";
+  const cls = p.val==null ? "" : (p.val>=0?"pos":"neg");
+  return `<div class="stat"><div class="lbl">${p.lbl}</div><div class="val ${cls}">${val}</div></div>`;
+}).join('');
+const maxScale=160;
+document.getElementById('barrAll').innerHTML = P.map(p=>{
+  const col=cssv(p.color.replace('var(','').replace(')',''));
+  const curPos=Math.min(p.niveauActuel/maxScale*100,100);
+  const capPos=p.barriereCapital/maxScale*100;
+  const coupPos=p.barriereCoupon/maxScale*100;
+  const leftCap=Math.min(curPos,capPos), widthCap=Math.abs(curPos-capPos);
+  const leftCoup=Math.min(curPos,coupPos), widthCoup=Math.abs(curPos-coupPos);
+  return `<div class="bar-row compact">
+    <div class="top">
+      <span class="name">${shortLabel(p)}</span>
+      <span class="margins">
+        <span style="color:var(--barrier)">−${p.distCapital.toFixed(1)}%</span>
+        <span style="color:var(--coupon)">−${p.distCoupon.toFixed(1)}%</span>
+      </span>
+    </div>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:${curPos}%;background:${col}"></div>
+      <div class="bar-ref" style="left:${100/maxScale*100}%"><span class="tag">100%</span></div>
+      <div class="bar-barrier" style="left:${capPos}%"><span class="tag">${p.barriereCapital}%</span></div>
+      <div class="bar-barrier2" style="left:${coupPos}%"><span class="tag">${p.barriereCoupon}%</span></div>
+      <div class="bar-cursor" style="left:${curPos}%">
+        <span class="dot"></span>
+        <span class="curlab">${p.niveauActuel.toFixed(1)}%</span>
+      </div>
+    </div>
+  </div>`;
+}).join('');
+new Chart(document.getElementById('cPot'),{type:'bar',data:{labels:P.map(p=>compactLabel(p)),
+  datasets:[
+    {label:'Huidige waardering',data:P.map(p=>p.valo),backgroundColor:cssv('--muted'),borderRadius:5},
+    {label:'Potentiële waarde',data:P.map(p=>p.valeurPot),backgroundColor:cssv('--ubs'),borderRadius:5},
+  ]},
+  options:{plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:10}},
+    datalabels:{display:true,inside:true,color:'#fff',font:{weight:'700',size:11},formatter:v=>v.toFixed(0)+"%"},
+    tooltip:{callbacks:{title:items=>items.length?prodLabel(P[items[0].dataIndex]):'',label:c=>c.dataset.label+": "+c.raw.toFixed(1)+"%"}}},
+    scales:{y:{ticks:{callback:v=>v+"%"},grid:{color:cssv('--line')}},x:{grid:{display:false},ticks:{font:{size:10},maxRotation:0,minRotation:0,autoSkip:false}}}}});
+document.getElementById('potTable').innerHTML =
+  `<tr><th>Product</th><th>Huidige waarde</th><th>Potentiële waarde</th><th>Potentiële multiple</th><th>Potentiële looptijd</th><th>Pot. perf/jaar</th></tr>`+
+  P.map(p=>`<tr><td>${typeLabel(p)} ${emetteurAbbrev(p)}<br>${p.indiceShort}<br><span class="tagname">${p.clickYears} jaar · ${p.couponPct}%/jaar</span></td>
+    <td>${p.valo.toFixed(1)}%</td>
+    <td>${p.valeurPot.toFixed(0)}%</td>
+    <td>x${p.multiple.toFixed(2).replace('.',',')}</td>
+    <td>${p.dureeRes.toFixed(1).replace('.',',')} jaar</td>
+    <td class="pos">+${(p.perfAn*100).toFixed(1).replace('.',',')}%</td></tr>`).join('')+
+  (function(){
+    const actP=P.reduce((s,p)=>s+p.valo*p.notionnel,0)/totalNom;
+    const potP=P.reduce((s,p)=>s+p.valeurPot*p.notionnel,0)/totalNom;
+    const multP=potP/actP;
+    const durP=P.reduce((s,p)=>s+p.dureeRes*p.notionnel,0)/totalNom;
+    const perfP=(multP-1)/durP;
+    return `<tr><td>Portefeuille (nominaal gewogen)</td>
+      <td>${actP.toFixed(1)}%</td>
+      <td>${potP.toFixed(0)}%</td>
+      <td>x${multP.toFixed(2).replace('.',',')}</td>
+      <td>${durP.toFixed(1).replace('.',',')} jaar</td>
+      <td class="pos">+${(perfP*100).toFixed(1).replace('.',',')}%</td></tr>`;
+  })();
+const REF_DETAIL = {
+  "DE000UQ0MWF3": {nomOfficiel:"Digital Boost Sovereignty Note", emetteurLegal:"UBS AG (London Branch)", ticker:"MQDSOV50",
+    indiceOfficiel:"Merqube Eurozone Sovereignty 10 Basket 50 Point Decrement GTR EUR", maturite:"2034-09-04", barriereCapitalTxt:"50% (-50%), op vervaldag",
+    clickTxt:"N.v.t. (geen click)", clickBarriereTxt:"80% (-20%), op vervaldag", couponTxt:"108% (12% per verstreken jaar)",
+    typeProduit:"Airbag Note (Digital) — voorwaardelijke coupon op vervaldag, zonder tussentijdse click",
+    mecanisme:[
+      "Is de onderliggende waarde op vervaldag <b>groter dan of gelijk aan de <span style=\"color:var(--coupon)\">couponbarrière (80%)</span></b>: terugbetaling van 100% van het nominaal + coupon van <b>108%</b> (12%/jaar over 9 jaar).",
+      "Ligt de onderliggende waarde <b>tussen de <span style=\"color:var(--barrier)\">beschermingsbarrière (50%)</span> en de <span style=\"color:var(--coupon)\">couponbarrière (80%)</span></b>: terugbetaling van 100% van het nominaal, zonder coupon.",
+      "Is de onderliggende waarde <b>lager dan <span style=\"color:var(--barrier)\">50%</span></b> van haar beginniveau: kapitaal terugbetaald in verhouding tot de daling van de onderliggende waarde (kapitaalverlies)."
+    ]},
+  "XS3080432829": {nomOfficiel:"Digital Boost Titans Note", emetteurLegal:"BNP Paribas Issuance BV (garant BNP Paribas)", ticker:"TITANEST",
+    indiceOfficiel:"Bloomberg Eurozone Titans Select Decrement 50 Point Index", maturite:"2034-09-18", barriereCapitalTxt:"50% (-50%), op vervaldag",
+    clickTxt:"N.v.t. (geen click)", clickBarriereTxt:"86% (-14%), op vervaldag", couponTxt:"108% (12% per verstreken jaar)",
+    typeProduit:"Airbag Note (Digital) — voorwaardelijke coupon op vervaldag, zonder tussentijdse click",
+    mecanisme:[
+      "Is de onderliggende waarde op vervaldag <b>groter dan of gelijk aan de <span style=\"color:var(--coupon)\">couponbarrière (86%)</span></b>: terugbetaling van 100% van het nominaal + coupon van <b>108%</b> (12%/jaar over 9 jaar).",
+      "Ligt de onderliggende waarde <b>tussen de <span style=\"color:var(--barrier)\">beschermingsbarrière (50%)</span> en de <span style=\"color:var(--coupon)\">couponbarrière (86%)</span></b>: terugbetaling van 100% van het nominaal, zonder coupon.",
+      "Is de onderliggende waarde <b>lager dan <span style=\"color:var(--barrier)\">50%</span></b> van haar beginniveau: kapitaal terugbetaald in verhouding tot de daling van de onderliggende waarde (kapitaalverlies)."
+    ]},
+  "FR0014015IH0": {nomOfficiel:"Click & Lock Yield Note", emetteurLegal:"Natixis Structured Issuance (garant Natixis)", ticker:"EZLEADDG",
+    indiceOfficiel:"iEdge Eurozone Leaders 10 EW Decrement 50 Points GTR Index", maturite:"2036-02-12", barriereCapitalTxt:"50% (-50%), op vervaldag",
+    clickTxt:"03/02/2031 daarna jaarlijks", clickBarriereTxt:"100% (jaar 5), degressief -5%/jaar tot 75% (jaar 10)", couponTxt:"12%/jaar tot de click, daarna 3%/jaar gekapitaliseerd",
+    typeProduit:"Click Switch To Bond — coupon vastgeklikt en gekapitaliseerd bij de 1e doorbreking van de Click-barrière, anders eindbonus of beschermingsbarrière",
+    mecanisme:[
+      "Op elke jaarlijkse vaststellingsdatum vanaf jaar 5, indien de onderliggende waarde <b>groter dan of gelijk is aan de <span style=\"color:var(--coupon)\">Click-barrière</span></b> van dat jaar (100% in jaar 5, degressief met -5%/jaar tot 75% in jaar 10): de coupons worden vastgeklikt en, samen met het nominaal, belegd tegen een vaste rente van <b>3%/jaar</b> tot vervaldag.",
+      "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op de eindvervaldag (jaar 10) <b>groter dan of gelijk aan 75%</b> van haar beginniveau: terugbetaling van 100% van het nominaal + coupon van <b>120%</b>.",
+      "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op vervaldag <b>lager dan de <span style=\"color:var(--barrier)\">beschermingsbarrière (50%)</span></b>: kapitaal terugbetaald in verhouding tot de daling van de onderliggende waarde (kapitaalverlies)."
+    ]},
+  "XS3266363558": {nomOfficiel:"Click Switch To Bond", emetteurLegal:"BNP Paribas Issuance BV (garant BNP Paribas)", ticker:"MSOVERNT",
+    indiceOfficiel:"Morningstar Eurozone Sovereignty Selection Fixed Basket Decrement 50", maturite:"2038-04-01", barriereCapitalTxt:"50% (-50%), op vervaldag",
+    clickTxt:"25/03/2031 daarna jaarlijks", clickBarriereTxt:"100% (jaar 5), degressief -5,25%/jaar tot 63,25% (jaar 12)", couponTxt:"12%/jaar tot de click, daarna 3%/jaar gekapitaliseerd",
+    typeProduit:"Click Switch To Bond (12Y) — coupon vastgeklikt en gekapitaliseerd bij de 1e doorbreking van de Click-barrière, anders eindbonus of beschermingsbarrière",
+    mecanisme:[
+      "Op elke jaarlijkse vaststellingsdatum vanaf jaar 5, indien de onderliggende waarde <b>groter dan of gelijk is aan de <span style=\"color:var(--coupon)\">Click-barrière</span></b> van dat jaar (100% in jaar 5, degressief met -5,25%/jaar tot 63,25% in jaar 12): de coupons worden vastgeklikt en, samen met het nominaal, belegd tegen een vaste rente van <b>3%/jaar</b> tot vervaldag.",
+      "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op de eindvervaldag (jaar 12) <b>groter dan of gelijk aan 63,25%</b> van haar beginniveau: terugbetaling van 100% van het nominaal + coupon van <b>144%</b>.",
+      "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op vervaldag <b>lager dan de <span style=\"color:var(--barrier)\">beschermingsbarrière (50%)</span></b>: kapitaal terugbetaald in verhouding tot de daling van de onderliggende waarde (kapitaalverlies)."
+    ]},
+};
+document.getElementById('refTable').innerHTML =
+  `<tr><th>Productnaam</th><th>ISIN</th><th>Emittent</th><th>Belegd nominaal (EUR)</th><th>% Blootstelling</th>
+   <th>Uitgiftedatum</th><th>Vervaldatum</th><th>Ticker</th><th>Indexnaam</th><th>Kapitaalbeschermingsbarrière</th>
+   <th>1e clickdatum</th><th>Clickbarrière</th><th>Jaarlijkse coupon</th></tr>`+
+  P.map(p=>{
+    const d=REF_DETAIL[p.id];
+    return `<tr>
+      <td>${shortLabel(p)}</td>
+      <td>${p.id}</td>
+      <td>${d.emetteurLegal}</td>
+      <td class="num">${p.notionnel.toLocaleString('nl-NL')}</td>
+      <td class="num">${(p.notionnel/totalNom*100).toFixed(2).replace('.',',')}%</td>
+      <td>${new Date(p.emission).toLocaleDateString('nl-NL')}</td>
+      <td>${new Date(d.maturite).toLocaleDateString('nl-NL')}</td>
+      <td>${d.ticker}</td>
+      <td>${d.indiceOfficiel}</td>
+      <td>${d.barriereCapitalTxt}</td>
+      <td>${d.clickTxt}</td>
+      <td>${d.clickBarriereTxt}</td>
+      <td>${d.couponTxt}</td>
+    </tr>`;
+  }).join('')+
+  `<tr><td class="total">Totaal</td><td></td><td></td><td class="num total">${totalNom.toLocaleString('nl-NL')}</td><td class="num total">100,0%</td>
+   <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+
+// Tijdlijn van de lanceringen — één bol per product, gepositioneerd in de tijd (uitgifte),
+// gekleurd zoals in de andere grafieken, diameter proportioneel aan sqrt(nominaal) (oppervlakte ~ nominaal),
+// nominaal weergegeven in de bol, datum op de tijdlijn zelf (productnaam staat al in de legende).
+// Twee rijen afgewisseld (met een vrije zone rond de lijn) om overlap te vermijden,
+// + jaarlijkse kalenderreferenties (juli van elk jaar).
+(function(){
+  const friseEl = document.getElementById('friseTimeline');
+  if(!friseEl) return;
+  const tDate = d => new Date(d).getTime();
+  const sorted = [...P].sort((a,b)=>tDate(a.emission)-tDate(b.emission));
+  const pad = 20*24*3600*1000;
+  const anchorMonths = [0,6]; // januari en juli
+  let minTs = tDate(sorted[0].emission) - pad;
+  const maxTs = Math.max(tDate(sorted[sorted.length-1].emission), tDate(lastDate)) + pad;
+  // Verlengt het begin van de tijdlijn indien nodig om de referentie (januari/juli) vóór de eerste gegevens op te nemen
+  const y0 = new Date(minTs).getFullYear();
+  const priorAnchors = [];
+  [y0-1,y0].forEach(yr=>anchorMonths.forEach(m=>priorAnchors.push(new Date(yr,m,1).getTime())));
+  const nearestPrior = priorAnchors.filter(c=>c<=minTs).sort((a,b)=>b-a)[0];
+  if(nearestPrior!==undefined && nearestPrior < minTs) minTs = nearestPrior;
+  const span = maxTs - minTs;
+  const minD = 54, maxD = 70;
+  const nots = P.map(p=>p.notionnel);
+  const notMin = Math.min(...nots), notMax = Math.max(...nots);
+  const diamOf = n => notMax===notMin ? (minD+maxD)/2 : minD + (maxD-minD)*(Math.sqrt(n)-Math.sqrt(notMin))/(Math.sqrt(notMax)-Math.sqrt(notMin));
+  const bubbleTxt = n => n>=1000000 ? (n/1e6).toLocaleString('nl-NL',{maximumFractionDigits:1})+"M€" : Math.round(n/1000)+"k€";
+  const trackTop = 105, laneUp = 45, laneDown = 165;
+  const dateGap = 6; // ruimte tussen de bovenkant van de bol en de datum
+
+  const startYear = new Date(minTs).getFullYear(), endYear = new Date(maxTs).getFullYear();
+  let html = '';
+  for(let yr=startYear; yr<=endYear; yr++){
+    anchorMonths.forEach(m=>{
+      const yts = new Date(yr, m, 1).getTime();
+      if(yts<minTs || yts>maxTs) return;
+      const lp = (yts-minTs)/span*100;
+      const lbl = new Date(yts).toLocaleDateString('nl-NL',{month:'short',year:'2-digit'});
+      html += `<div class="frise-yeartick" style="left:${lp}%"></div><div class="frise-yearlabel" style="left:${lp}%">${lbl}</div>`;
+    });
+  }
+  html += `<div class="frise-track"></div>`;
+
+  sorted.forEach((p,i)=>{
+    const leftPct = (tDate(p.emission)-minTs)/span*100;
+    const d = diamOf(p.notionnel);
+    const r = d/2;
+    const col = cssv(p.color.replace('var(','').replace(')',''));
+    const lane = i%2===0 ? 'up' : 'down';
+    const bubbleTop = lane==='up' ? laneUp : laneDown;
+    const tickTop = lane==='up' ? bubbleTop : trackTop;
+    const tickH = lane==='up' ? (trackTop-bubbleTop) : (bubbleTop-trackTop);
+    // Boven de bol in de bovenste rij, onder de bol in de onderste rij (nooit richting de lijn)
+    const dateTop = lane==='up' ? Math.max(12, bubbleTop - r - dateGap) : (bubbleTop + r + dateGap);
+    const dateCls = lane==='up' ? 'frise-date' : 'frise-date below';
+    const dateTxt = new Date(p.emission).toLocaleDateString('nl-NL',{day:'2-digit',month:'short',year:'2-digit'});
+    const fs = Math.max(8, Math.min(11, d*0.15));
+    html += `<div class="frise-tick" style="left:${leftPct}%;top:${tickTop}px;height:${tickH}px"></div>`;
+    html += `<div class="frise-bubble" style="left:${leftPct}%;top:${bubbleTop}px;width:${d}px;height:${d}px;background:${col};font-size:${fs}px" title="${shortLabel(p)} — ${dateTxt} — ${p.notionnel.toLocaleString('nl-NL')} €">${bubbleTxt(p.notionnel)}</div>`;
+    html += `<div class="${dateCls}" style="left:${leftPct}%;top:${dateTop}px">${dateTxt}</div>`;
+  });
+  friseEl.innerHTML = html;
+  friseEl.insertAdjacentHTML('afterend', `<div class="frise-legend">`+
+    P.map(p=>`<div class="item"><span class="sw" style="background:${cssv(p.color.replace('var(','').replace(')',''))};width:9px;height:9px;border-radius:50%;display:inline-block"></span><span>${shortLabel(p)}</span></div>`).join('')+
+    `</div>`);
+})();
+
+function productHistory(p){
+  const dates = Array.from(new Set([p.emission, ...OBS.filter(o=>o.valos[p.id]).map(o=>o.date)])).sort();
+  const valoSeries = dates.map(d=>{
+    const o = OBS.find(x=>x.date===d);
+    if(o && o.valos[p.id]) return o.valos[p.id].valo;
+    return d===p.emission ? 100 : null;
+  });
+  const indiceSeries = dates.map(d=>{
+    const o = OBS.find(x=>x.date===d);
+    if(o && o.valos[p.id]) return 100+o.valos[p.id].perfIndice;
+    return d===p.emission ? 100 : null;
+  });
+  return {dates, valoSeries, indiceSeries};
+}
+function renderProductTab(p){
+  const hist = productHistory(p);
+  const col = cssv(p.color.replace('var(','').replace(')',''));
+  const label = shortLabel(p);
+  const btn = document.getElementById('tabBtnProd_'+p.id);
+  if(btn) btn.textContent = label;
+  const title = document.getElementById('titleProd_'+p.id);
+  if(title) title.textContent = label+' — historiek product vs index';
+  const hint = document.getElementById('hintProd_'+p.id);
+  if(hint) hint.textContent = 'Productwaardering (%) en '+p.indice+' herbasis 100, sinds lancering op '+new Date(p.emission).toLocaleDateString('nl-NL');
+  const kpis = [
+    {lbl:'Productperformance', val:(p.valo-100>=0?'+':'')+(p.valo-100).toFixed(1)+'%', sub:'op '+new Date(p.dateRelevé).toLocaleDateString('nl-NL'), cls:p.valo-100>=0?'pos':'neg'},
+    {lbl:'Indexperformance sinds lancering', val:(p.perfIndice>=0?'+':'')+p.perfIndice.toFixed(1)+'%', sub:p.indiceShort, cls:p.perfIndice>=0?'pos':'neg'},
+    {lbl:'Marge tot kapitaalbarrière', val:'−'+p.distCapital.toFixed(1)+'%', sub:'barrière op '+p.barriereCapital+'%', color:cssv('--barrier')},
+    {lbl:'Marge tot couponbarrière', val:'−'+p.distCoupon.toFixed(1)+'%', sub:'barrière op '+p.barriereCoupon+'%', color:cssv('--coupon')},
+  ];
+  const kpiEl = document.getElementById('kpisProd_'+p.id);
+  if(kpiEl) kpiEl.innerHTML = kpis.map(k=>
+    `<div class="kpi"><div class="lbl"${k.color?` style="color:${k.color}"`:''}>${k.lbl}</div><div class="val ${k.cls||''}"${k.color?` style="color:${k.color}"`:''}>${k.val}</div><div class="sub">${k.sub}</div></div>`).join('');
+
+  const descEl = document.getElementById('descProd_'+p.id);
+  if(descEl){
+    const d = REF_DETAIL[p.id];
+    descEl.innerHTML = `
+      <dl>
+        <dt>Naam</dt><dd>${d.nomOfficiel} <span style="color:var(--muted);font-weight:500">(${d.typeProduit||''})</span></dd>
+        <dt>ISIN</dt><dd>${p.id}</dd>
+        <dt>Emittent</dt><dd>${d.emetteurLegal}</dd>
+        <dt>Nominaal</dt><dd>${p.notionnel.toLocaleString('nl-NL')} €</dd>
+        <dt>Uitgifte</dt><dd>${new Date(p.emission).toLocaleDateString('nl-NL')}</dd>
+        <dt>Vervaldag</dt><dd>${new Date(d.maturite).toLocaleDateString('nl-NL')}</dd>
+        <dt>Onderliggende waarde</dt><dd>${d.indiceOfficiel} (${d.ticker})</dd>
+        <dt style="color:${cssv('--barrier')}">Beschermingsbarrière</dt><dd style="color:${cssv('--barrier')}">${d.barriereCapitalTxt}</dd>
+        <dt style="color:${cssv('--coupon')}">Couponbarrière</dt><dd style="color:${cssv('--coupon')}">${d.clickBarriereTxt}</dd>
+        <dt>Coupon</dt><dd>${d.couponTxt}</dd>
+      </dl>
+      <p><b>Mechanisme:</b></p>
+      <ul>${(d.mecanisme||[]).map(m=>`<li>${m}</li>`).join('')}</ul>`;
+  }
+
+  // Lineaire tijdas (proportioneel met de werkelijke tijd), van uitgifte tot doeldatum
+  const toX = d => new Date(d).getTime();
+  const xMin = toX(p.emission);
+  const xMax = toX(p.cible);
+  const valoPts = hist.dates.map((d,i)=>({x:toX(d), y:hist.valoSeries[i]})).filter(pt=>pt.y!=null);
+  const indicePts = hist.dates.map((d,i)=>({x:toX(d), y:hist.indiceSeries[i]})).filter(pt=>pt.y!=null);
+  const barCapPts = [{x:xMin,y:p.barriereCapital},{x:xMax,y:p.barriereCapital}];
+  const barCoupPts = [{x:xMin,y:p.barriereCoupon},{x:xMax,y:p.barriereCoupon}];
+  const potPts = [{x:xMax,y:p.valeurPot}];
+
+  const allVals = [...valoPts.map(v=>v.y), ...indicePts.map(v=>v.y), p.barriereCapital, p.barriereCoupon, p.valeurPot];
+  const yMin = Math.floor((Math.min(...allVals)-5)/10)*10;
+  const yMax = Math.ceil((Math.max(...allVals)+5)/10)*10;
+
+  // Ticks enkel op kalenderkwartalen (jan./maart/juni/sept.), proportioneel in de tijd geplaatst
+  function yearTimestamps(startTs, endTs){
+    const out=[];
+    const startYear=new Date(startTs).getFullYear(), endYear=new Date(endTs).getFullYear();
+    for(let yr=startYear; yr<=endYear; yr++){
+      const ts = new Date(yr,0,1).getTime();
+      if(ts>=startTs && ts<=endTs) out.push(ts);
+    }
+    return out;
+  }
+
+  new Chart(document.getElementById('cProd_'+p.id),{type:'line',
+    data:{
+      datasets:[
+        {label:'Productwaardering',data:valoPts,borderColor:col,backgroundColor:col,tension:.25,pointRadius:valoPts.map((_,i)=>i===valoPts.length-1?4:0),pointHoverRadius:5,borderWidth:2.5},
+        {label:'Onderliggende index (herbasis 100 = uitgifte)',data:indicePts,borderColor:cssv('--muted'),backgroundColor:cssv('--muted'),borderDash:[4,3],tension:.25,pointRadius:indicePts.map((_,i)=>i===indicePts.length-1?4:0),pointHoverRadius:5,borderWidth:1.5},
+        {label:'Kapitaalbarrière ('+p.barriereCapital+'%)',data:barCapPts,borderColor:cssv('--barrier'),borderDash:[2,2],pointRadius:0,borderWidth:1.3},
+        {label:'Couponbarrière ('+p.barriereCoupon+'%)',data:barCoupPts,borderColor:cssv('--coupon'),borderDash:[8,3],pointRadius:0,borderWidth:1.3},
+        {label:'Potentiële eindwaarde ('+p.valeurPot.toFixed(0)+'%)',data:potPts,showLine:false,pointRadius:5,pointBackgroundColor:cssv('--pos'),pointBorderColor:'#fff',pointBorderWidth:1.5},
+      ]},
+    options:{layout:{padding:{top:16,right:40}},
+      interaction:{mode:'nearest',axis:'x',intersect:false},
+      plugins:{legend:{display:false},
+      tooltip:{callbacks:{
+        title:items=>items.length?fmtD(items[0].parsed.x):'',
+        label:c=>c.raw.y==null?null:c.dataset.label+": "+c.raw.y.toFixed(1)+"%"
+      }}},
+      scales:{
+        y:{min:yMin,max:yMax,ticks:{callback:v=>v+"%"},grid:{color:cssv('--line')}},
+        x:{type:'linear',min:xMin,max:xMax,
+          afterBuildTicks:(scale)=>{ scale.ticks = yearTimestamps(scale.min,scale.max).map(v=>({value:v})); },
+          ticks:{callback:v=>new Date(v).toLocaleDateString('nl-NL',{month:'short',year:'2-digit'}),maxRotation:0},
+          grid:{drawOnChartArea:false,drawTicks:true,tickLength:4,tickColor:cssv('--muted')}
+        }
+      }},
+    plugins:[{
+      id:'valeurPotentielleLabel_'+p.id,
+      afterDraw(chart){
+        const xScale = chart.scales.x, yScale = chart.scales.y;
+        const xPot = xScale.getPixelForValue(xMax);
+        const yPot = yScale.getPixelForValue(p.valeurPot);
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font='700 10px Inter, Segoe UI, system-ui, sans-serif';
+        ctx.fillStyle=cssv('--pos'); ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText('Potentiële eindwaarde: '+p.valeurPot.toFixed(0)+'%', xPot-9, yPot);
+        ctx.restore();
+      }
+    }]});
+  const legendEl = document.getElementById('legendProd_'+p.id);
+  if(legendEl) legendEl.innerHTML = `<div class="line-legend">
+    <div class="item"><span class="ln solid" style="--c:${col}"></span><span>Productwaardering</span></div>
+    <div class="item"><span class="ln" style="--c:${cssv('--muted')}"></span><span>Onderliggende index (herbasis 100 = uitgifte)</span></div>
+    <div class="item"><span class="ln dotted" style="--c:${cssv('--barrier')}"></span><span>Kapitaalbarrière (${p.barriereCapital}%)</span></div>
+    <div class="item"><span class="ln dashlong" style="--c:${cssv('--coupon')}"></span><span>Couponbarrière (${p.barriereCoupon}%)</span></div>
+  </div>`;
+}
+['DE000UQ0MWF3','XS3080432829','FR0014015IH0','XS3266363558'].forEach(id=>renderProductTab(P.find(p=>p.id===id)));
+
+function indiceSeriesFor(p){
+  return allDates.map(d=>{
+    if(d < p.emission) return null;
+    const o = OBS.find(x=>x.date===d);
+    if(o && o.valos[p.id]) return 100+o.valos[p.id].perfIndice;
+    return d===p.emission ? 100 : null;
+  });
+}
+let chartSousJacents = null;
+const PERIOD_LABELS = {all:"sinds de uitgifte van elk product", ytd:'sinds 1 januari', '6m':'over de laatste 6 maanden', '3m':'over de laatste 3 maanden', '1m':'over de laatste maand'};
+function renderSousJacents(period){
+  const canvas = document.getElementById('cSousJacents');
+  if(!canvas) return;
+  const cols = P.map(p=>cssv(p.color.replace('var(','').replace(')','')));
+
+  // Datumvenster volgens de gekozen periode
+  const months = {'6m':6,'3m':3,'1m':1}[period];
+  let winDates = allDates;
+  if(period==='ytd'){
+    const lastYear = new Date(allDates[allDates.length-1]).getFullYear();
+    const from = new Date(lastYear,0,1);
+    winDates = allDates.filter(d=>new Date(d).getTime()>=from.getTime());
+  } else if(months){
+    const from = new Date(allDates[allDates.length-1]);
+    from.setMonth(from.getMonth()-months);
+    winDates = allDates.filter(d=>new Date(d).getTime()>=from.getTime());
+  }
+  const i0 = allDates.indexOf(winDates[0]);
+  const isWindowed = period !== 'all'; // herbasis 100 bij aanvang van het venster voor elke periode behalve "All"
+
+  // "All": basis 100 = uitgifte van elk product. Anders: basis 100 = begin van het venster
+  const series = P.map(p=>{
+    const full = indiceSeriesFor(p);
+    const win = full.slice(i0);
+    if(!isWindowed) return win;
+    const base = win.find(v=>v!=null);
+    if(base==null) return win.map(()=>null);
+    return win.map(v=>v==null?null:v/base*100);
+  });
+  // Marktreferentie EURO STOXX 50: dezelfde herbasislogica (basis 100 op de eerste beschikbare waarde in het venster)
+  const stoxxWin = stoxxRaw.slice(i0);
+  const stoxxBase = stoxxWin.find(v=>v!=null);
+  const stoxxSeries = stoxxBase==null ? stoxxWin.map(()=>null) : stoxxWin.map(v=>v==null?null:v/stoxxBase*100);
+  const benchColor = cssv('--bench');
+  const refLine = winDates.map(()=>100);
+
+  const hintEl = document.getElementById('hintSousJacents');
+  if(hintEl) hintEl.textContent = (isWindowed
+    ? 'Niveau van elke index herbasis 100 bij aanvang van de periode — performance '+PERIOD_LABELS[period]
+    : "Niveau van elke index herbasis 100 op zijn eigen uitgiftedatum, op een gemeenschappelijke tijdschaal")
+    + " · EURO STOXX 50 toegevoegd als marktreferentie (herbasis 100 bij aanvang van het venster)";
+
+  if(chartSousJacents) chartSousJacents.destroy();
+
+  // In modus "All": echte lineaire tijdsas (in timestamp) zodat de afstand de kalender volgt,
+  // ook als de meetfrequentie varieerde (bv. minder metingen bij de start).
+  // In vensterde modus (YTD/6m/3m/1m): klassieke categorische as (één invoer per gemeten datum, dicht genoeg).
+  let datasets, xScaleOpts, qTicksWin;
+  if(!isWindowed){
+    const toPts = arr => winDates.map((d,i)=>({x:ts(d), y:arr[i]})).filter(pt=>pt.y!=null);
+    qTicksWin = quarterTickValues(winDates);
+    datasets = [
+      ...P.map((p,i)=>({label:p.indice+' ('+p.sousjacent+')',data:toPts(series[i]),borderColor:cols[i],backgroundColor:cols[i],tension:.25,spanGaps:true,pointRadius:0,pointHoverRadius:4,borderWidth:2})),
+      {label:'EURO STOXX 50 (referentie)',data:toPts(stoxxSeries),borderColor:benchColor,backgroundColor:benchColor,tension:.25,spanGaps:true,pointRadius:0,pointHoverRadius:4,borderWidth:2,borderDash:[6,3]},
+      {label:'Beginniveau (100%)',data:[{x:ts(winDates[0]),y:100},{x:ts(winDates[winDates.length-1]),y:100}],borderColor:cssv('--muted'),borderDash:[3,3],borderWidth:1,pointRadius:0,spanGaps:true},
+    ];
+    xScaleOpts = {type:'linear',min:ts(winDates[0]),max:ts(winDates[winDates.length-1]),grid:{display:false},
+      afterBuildTicks:axis=>{ axis.ticks = qTicksWin.map(q=>({value:q.value})); },
+      ticks:{autoSkip:false,maxRotation:0,callback:(value)=>{ const f=qTicksWin.find(q=>q.value===value); return f?f.label:''; }}};
+  } else {
+    datasets = [
+      ...P.map((p,i)=>({label:p.indice+' ('+p.sousjacent+')',data:series[i],borderColor:cols[i],backgroundColor:cols[i],tension:.25,spanGaps:true,pointRadius:0,pointHoverRadius:4,borderWidth:2})),
+      {label:'EURO STOXX 50 (referentie)',data:stoxxSeries,borderColor:benchColor,backgroundColor:benchColor,tension:.25,spanGaps:true,pointRadius:0,pointHoverRadius:4,borderWidth:2,borderDash:[6,3]},
+      {label:'Basis 100 (begin periode)',data:refLine,borderColor:cssv('--muted'),borderDash:[3,3],borderWidth:1,pointRadius:0,spanGaps:true},
+    ];
+    xScaleOpts = {grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:10,maxRotation:0}};
+  }
+
+  chartSousJacents = new Chart(canvas,{type:'line',
+    data:{labels:isWindowed?winDates.map(fmtD):undefined, datasets},
+    options:{layout:{padding:{right:56}},plugins:{legend:{display:false},
+      tooltip:{callbacks:{
+        title:items=>{
+          if(!items.length) return '';
+          return isWindowed ? fmtD(winDates[items[0].dataIndex]) : fmtD(items[0].parsed.x);
+        },
+        label:c=>{
+          const raw = isWindowed ? c.raw : c.raw.y;
+          return raw==null?null:c.dataset.label+": "+(raw>=100?'+':'')+(raw-100).toFixed(1)+"%";
+        }
+      }}},
+      scales:{
+        y:{ticks:{callback:v=>v+"%"},grid:{color:cssv('--line')}},
+        x:xScaleOpts
+      }},
+    plugins:[{
+      id:'sousJacentsPerfLabels',
+      afterDraw(chart){
+        const xScale = chart.scales.x, yScale = chart.scales.y;
+        const labels = [];
+        const labelSeries = [...P.map((p,i)=>({data:series[i],color:cols[i]})), {data:stoxxSeries,color:benchColor}];
+        labelSeries.forEach(s=>{
+          let li = s.data.length-1;
+          while(li>=0 && s.data[li]==null) li--;
+          if(li<0) return;
+          const xVal = isWindowed ? li : ts(winDates[li]);
+          const x = xScale.getPixelForValue(xVal);
+          const yRaw = yScale.getPixelForValue(s.data[li]);
+          const perf = s.data[li]-100;
+          labels.push({x, y:yRaw, yRaw, color:s.color, text:(perf>=0?'+':'')+perf.toFixed(1)+'%'});
+        });
+        // Vermijdt overlappende labels wanneer twee performances dicht bij elkaar liggen
+        labels.sort((a,b)=>a.y-b.y);
+        const minGap = 14;
+        for(let i=1;i<labels.length;i++){
+          if(labels[i].y - labels[i-1].y < minGap) labels[i].y = labels[i-1].y + minGap;
+        }
+        const ctx = chart.ctx;
+        labels.forEach(l=>{
+          ctx.save();
+          ctx.font='700 10px Inter, Segoe UI, system-ui, sans-serif';
+          ctx.textAlign='left'; ctx.textBaseline='middle';
+          const tw = ctx.measureText(l.text).width;
+          ctx.fillStyle='#ffffff'; ctx.globalAlpha=.9;
+          ctx.fillRect(l.x+6, l.y-7, tw+6, 14);
+          ctx.globalAlpha=1; ctx.fillStyle=l.color;
+          // verbindt het label met zijn werkelijke punt als het verschoven werd
+          if(Math.abs(l.y-l.yRaw)>1){
+            ctx.strokeStyle=l.color; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(l.x, l.yRaw); ctx.lineTo(l.x+6, l.y); ctx.stroke();
+          }
+          ctx.fillText(l.text, l.x+8, l.y);
+          ctx.restore();
+        });
+      }
+    }]});
+  const legendEl = document.getElementById('legendSousJacents');
+  if(legendEl) legendEl.innerHTML = `<div class="line-legend">`+
+    P.map((p,i)=>`<div class="item"><span class="ln solid" style="--c:${cols[i]}"></span><span>${p.indice} (${p.sousjacent}) — ${shortLabel(p)}</span></div>`).join('')+
+    `<div class="item"><span class="ln dashlong" style="--c:${benchColor}"></span><span>EURO STOXX 50 — marktreferentie (dividend-herbelegde index, zonder decrement, geen onderliggende waarde van de FIC-producten)</span></div>`+
+    `<div class="item"><span class="ln" style="--c:${cssv('--muted')}"></span><span>${isWindowed?'Basis 100 bij aanvang van de periode':"Beginniveau (100%, bij uitgifte van elk product)"}</span></div>`+
+    `</div>`;
+}
+renderSousJacents('all');
+document.querySelectorAll('#periodNav .period-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#periodNav .period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSousJacents(btn.dataset.period);
+  });
+});
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`);
+    panel.classList.add('active');
+    // Grafieken gemaakt in een verborgen tab detecteren hun grootte niet: we schalen ze bij weergave
+    requestAnimationFrame(()=>{
+      panel.querySelectorAll('canvas').forEach(c=>{
+        const ch = Chart.getChart(c);
+        if(ch) ch.resize();
+      });
+    });
+  });
+});
+document.getElementById('foot').textContent =
+  "Potentiële waarde = waarde bij click, coupon geactiveerd, scenario met index bevroren op vandaag (UBS/BNP Titans op eindvervaldag 9 jaar → 100%+9×12%; Natixis 1e click 5 jaar → 100%+5×12%; BNP MSOVERNT 1e click 5 jaar → 100%+5×12%, vereenvoudigde schatting die het werkelijke switch-to-bond-mechanisme na de click tegen 3% p.a. gekapitaliseerd niet modelleert). Afstand tot barrière = daling die de index kan opvangen voor de beschermings- of couponbarrière wordt doorbroken (UBS 80% / BNP Titans 86% / Natixis 80% / BNP MSOVERNT 100% in jaar 5, daarna degressief). Gegevens bij elke opname bij te werken in het blok bovenaan het bestand.";
+</script>
+</body>
+</html>
