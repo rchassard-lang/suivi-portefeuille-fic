@@ -32,6 +32,10 @@ h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
 .kpi .val{font-size:26px;font-weight:800;margin-top:6px;letter-spacing:-.02em}
 .kpi .sub{font-size:12px;color:var(--muted);margin-top:2px}
 .pos{color:var(--pos)} .neg{color:var(--neg)}
+.perf-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.perf-stats .stat{flex:1 1 110px;text-align:center}
+.perf-stats .stat .lbl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.perf-stats .stat .val{font-size:19px;font-weight:800;margin-top:3px;letter-spacing:-.01em}
 .grid{display:grid;gap:20px}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -162,6 +166,10 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
     <h2>Disclaimer en gebruiksbeperkingen</h2>
     <div class="hint">Te lezen voor elk gebruik van de gegevens in dit dashboard</div>
 
+    <div class="callout-warning" style="border-left:4px solid var(--neg);background:#fdf1ef;padding:14px 16px;border-radius:6px;margin-bottom:18px">
+      <p style="margin:0"><b>Belangrijk — dit document geeft niet de waarde van het fonds FIC SAA weer.</b> De weergegeven waarderingen hebben enkel betrekking op de gestructureerde producten van de portefeuille; ze houden geen rekening met de beheerskosten van het fonds, de niet-belegde cash, noch met de andere parameters die de intrinsieke waarde van het FIC bepalen. Voor de exacte waarde van het fonds, neem contact op met de verzekeraar of uw gebruikelijke contactpersoon.</p>
+    </div>
+
     <h3>Aard van het document</h3>
     <p>Dit dashboard is een <b>intern opvolgingsinstrument</b>, opgesteld ter informatie. Het vormt geen aanbod, geen uitnodiging, geen beleggingsadvies en geen persoonlijke aanbeveling tot aankoop, verkoop of aanhouden van de weergegeven financiële instrumenten. Het heeft geen waarde als officiële rapportering: enkel de documenten die door de beheervennootschap worden bezorgd en de juridische productdocumentatie (term sheets, definitieve voorwaarden, basisprospectus) zijn rechtsgeldig.</p>
 
@@ -228,7 +236,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 
 <div class="section-title">Historische performance</div>
 <div class="grid" style="margin-top:16px;grid-template-columns:1fr">
-  <div class="card" style="max-width:1100px;margin:0 auto"><h2>Evolutie in de tijd</h2><div class="hint">Productwaardering (%) sinds uitgifte — nominaal gewogen gemiddelde, laatst bekende waardering overgenomen als een product niet gequoteerd is</div><div class="chartbox tall"><canvas id="cTime"></canvas></div><div id="cTimeLegend"></div></div>
+  <div class="card" style="max-width:1100px;margin:0 auto"><h2>Evolutie in de tijd</h2><div class="hint">Productwaardering (%) sinds uitgifte — nominaal gewogen gemiddelde, laatst bekende waardering overgenomen als een product niet gequoteerd is</div><div class="chartbox tall"><canvas id="cTime"></canvas></div><div id="cTimeLegend"></div><div class="perf-stats" id="perfStats"></div></div>
 </div>
 
 <div class="section-title">Veiligheid</div>
@@ -601,7 +609,9 @@ const OBS = [
   { date:"2026-07-27", valos:{ "FR0014015IH0":{valo:90.74, perfIndice:9.02} } },
   { date:"2026-07-28", valos:{ "DE000UQ0MWF3":{valo:99.14, perfIndice:37.25}, "XS3080432829":{valo:107.91, perfIndice:16.52}, "XS3266363558":{valo:97.64, perfIndice:16.12} } },
   { date:"2026-08-03", valos:{ "FR0014015IH0":{valo:95.15, perfIndice:14.90} } },
-  { date:"2026-08-04", valos:{ "DE000UQ0MWF3":{valo:103.90, perfIndice:39.68}, "XS3080432829":{valo:110.11, perfIndice:19.60}, "XS3266363558":{valo:99.69, perfIndice:19.54} } }
+  { date:"2026-08-04", valos:{ "DE000UQ0MWF3":{valo:103.90, perfIndice:39.68}, "XS3080432829":{valo:110.11, perfIndice:19.60}, "XS3266363558":{valo:99.69, perfIndice:19.54} } },
+  { date:"2026-08-12", valos:{ "FR0014015IH0":{valo:96.37, perfIndice:16.33} } },
+  { date:"2026-08-13", valos:{ "DE000UQ0MWF3":{valo:105.62, perfIndice:45.87}, "XS3080432829":{valo:112.08, perfIndice:23.09}, "XS3266363558":{valo:101.22, perfIndice:23.95} } }
 ];
 // Marktreferentie EURO STOXX 50 (SX5E / ^STOXX50E) — dagelijkse slotkoersen, bron Yahoo Finance.
 // Geen onderliggende waarde van de FIC-producten : weergegeven als marktvergelijking (dividend-herbelegde index, zonder decrement).
@@ -820,6 +830,35 @@ const portAvg = allDates.map((d,di)=>{
   });
   return den? num/den : null;
 });
+function portAvgAt(targetDate){
+  let val=null;
+  for(let i=0;i<allDates.length;i++){
+    if(allDates[i] > targetDate) break;
+    if(portAvg[i]!=null) val=portAvg[i];
+  }
+  return val;
+}
+function shiftMonths(dateStr,n){
+  const d=new Date(dateStr+'T00:00:00Z');
+  const total = d.getUTCMonth()+n;
+  const y = d.getUTCFullYear() + Math.floor(total/12);
+  const m = ((total%12)+12)%12;
+  const day = d.getUTCDate();
+  const dt = new Date(Date.UTC(y,m,day));
+  return dt.toISOString().slice(0,10);
+}
+const portNow = portAvg[portAvg.length-1];
+const perfPeriods = [
+  {lbl:"YTD", cutoff: asofDate.slice(0,4)+"-01-01"},
+  {lbl:"3 maanden", cutoff: shiftMonths(asofDate,-3)},
+  {lbl:"6 maanden", cutoff: shiftMonths(asofDate,-6)},
+  {lbl:"1 jaar", cutoff: shiftMonths(asofDate,-12)},
+  {lbl:"Sinds start", cutoff: allDates[0]},
+].map(p=>{
+  const base = portAvgAt(p.cutoff);
+  if(base==null || p.cutoff < allDates[0]) return {...p, val:null};
+  return {...p, val:(portNow/base-1)*100};
+});
 // Echte lineaire tijdsas (in timestamp): de afstand tussen metingen volgt zo de kalender,
 // ook als de meetfrequentie in de tijd varieerde (in tegenstelling tot een categorische as per index).
 const qTicksAll = quarterTickValues(allDates);
@@ -844,6 +883,11 @@ document.getElementById('cTimeLegend').innerHTML = `<div class="frise-legend">`+
   P.map((p,i)=>`<div class="item"><span class="sw" style="background:${palette[i]};width:9px;height:9px;border-radius:50%;display:inline-block"></span><span>${shortLabel(p)}</span></div>`).join('')+
   `<div class="item"><span class="sw" style="background:${cssv('--ink')};width:9px;height:9px;border-radius:50%;display:inline-block"></span><span>Portefeuillegemiddelde</span></div>`+
   `</div>`;
+document.getElementById('perfStats').innerHTML = perfPeriods.map(p=>{
+  const val = p.val==null ? "n.d." : (p.val>=0?"+":"")+p.val.toFixed(1)+"%";
+  const cls = p.val==null ? "" : (p.val>=0?"pos":"neg");
+  return `<div class="stat"><div class="lbl">${p.lbl}</div><div class="val ${cls}">${val}</div></div>`;
+}).join('');
 const maxScale=160;
 document.getElementById('barrAll').innerHTML = P.map(p=>{
   const col=cssv(p.color.replace('var(','').replace(')',''));
