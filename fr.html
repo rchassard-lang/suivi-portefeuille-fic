@@ -399,8 +399,7 @@ const shortLabel = p => typeLabel(p)+' '+emetteurAbbrev(p)+' '+p.indiceShort;
 const asofDate = P.reduce((mx,p)=>p.dateRelevé>mx?p.dateRelevé:mx, lastDate);
 document.getElementById('asof').textContent =
   "Dernier relevé : "+new Date(asofDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
-  +" · "+P.length+" produits · notionnel "+fmtEur(totalNom)
-  +" · relevés indisponibles du 14/10 au 21/10/2026";
+  +" · "+P.length+" produits · notionnel "+fmtEur(totalNom);
 const kpis=[
   {lbl:"Notionnel investi", val:fmtEur(totalNom), sub:P.length+" produits"},
   {lbl:"Valeur de marché", val:fmtEur(totalMv), sub:"au dernier relevé"},

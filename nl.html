@@ -399,8 +399,7 @@ const shortLabel = p => typeLabel(p)+' '+emetteurAbbrev(p)+' '+p.indiceShort;
 const asofDate = P.reduce((mx,p)=>p.dateRelevé>mx?p.dateRelevé:mx, lastDate);
 document.getElementById('asof').textContent =
   "Laatste opname: "+new Date(asofDate).toLocaleDateString('nl-NL',{day:'2-digit',month:'long',year:'numeric'})
-  +" · "+P.length+" producten · nominaal "+fmtEur(totalNom)
-  +" · geen opnames van 14/10 tot 21/10/2026";
+  +" · "+P.length+" producten · nominaal "+fmtEur(totalNom);
 const kpis=[
   {lbl:"Belegd nominaal", val:fmtEur(totalNom), sub:P.length+" producten"},
   {lbl:"Marktwaarde", val:fmtEur(totalMv), sub:"op laatste opname"},
