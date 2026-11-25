@@ -444,6 +444,7 @@ let lo=-0.5, hi=1; for(let k=0;k<200;k++){ const mid=(lo+hi)/2; if(npvAt(mid)>0)
 const triPot = (lo+hi)/2;
 const pvTot = FLOWS.reduce((s,f)=>s+f.cf/Math.pow(1+triPot,f.t),0);
 const durPot = FLOWS.reduce((s,f)=>s+f.t*f.cf/Math.pow(1+triPot,f.t),0)/pvTot;
+const horizEq = Math.log(potEur/totalMv)/Math.log(1+triPot);
 const tMin = Math.min(...FLOWS.map(f=>f.t)), tMax = Math.max(...FLOWS.map(f=>f.t));
 const fmtY = x => x.toFixed(1).replace('.',',')+' jaar';
 const KGROUPS = [
@@ -454,9 +455,9 @@ const KGROUPS = [
   {h:'Potentieel', sub:'Scenario: elk product activeert zijn coupon op de eerst mogelijke datum', rows:[
     {l:'Potentiële waarde', s:(potEur/totalNom*100).toFixed(0)+'% van het nominaal', v:fmtEur(potEur)},
     {l:'Potentiële multiple', s:'t.o.v. marktwaarde', v:'x'+(potEur/totalMv).toFixed(2).replace('.',',')},
-    {l:'Potentieel IRR', s:'actuarieel, op jaarbasis', v:pct1(triPot*100), cls:triPot>=0?'pos':'neg'}]},
+    {l:'Potentieel IRR', s:'actuarieel, op jaarbasis · additief '+pct1((potEur/totalMv-1)/horizEq*100), v:pct1(triPot*100), cls:triPot>=0?'pos':'neg'}]},
   {h:'Horizon en risico', rows:[
-    {l:'Duration', s:'gewogen gemiddelde van de potentiële stromen', v:fmtY(durPot)},
+    {l:'Equivalente horizon', s:'looptijd die de multiple aan het IRR koppelt', v:fmtY(horizEq)},
     {l:'Vervaldag stromen', s:'van de dichtstbijzijnde tot de verste', v:tMin.toFixed(1).replace('.',',')+' tot '+fmtY(tMax)},
     {l:'Min. kapitaalmarge', s:'daling voor kapitaalverlies', v:'−'+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+'%'}]}
 ];
@@ -715,7 +716,7 @@ document.getElementById('potTable').innerHTML =
     const actP=P.reduce((s,p)=>s+p.valo*p.notionnel,0)/totalNom;
     const potP=P.reduce((s,p)=>s+p.valeurPot*p.notionnel,0)/totalNom;
     const multP=potP/actP;
-    const durP=durPot; // même duration que le bandeau : flux potentiels actualisés au TRI
+    const durP=horizEq; // même horizon que le bandeau : multiple^(1/horizon) - 1 = TRI
     const perfP=(multP-1)/durP;
     return `<tr><td>Portefeuille (nominaal gewogen)</td>
       <td>${actP.toFixed(1)}%</td>

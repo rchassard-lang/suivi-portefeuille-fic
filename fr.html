@@ -444,6 +444,7 @@ let lo=-0.5, hi=1; for(let k=0;k<200;k++){ const mid=(lo+hi)/2; if(npvAt(mid)>0)
 const triPot = (lo+hi)/2;
 const pvTot = FLOWS.reduce((s,f)=>s+f.cf/Math.pow(1+triPot,f.t),0);
 const durPot = FLOWS.reduce((s,f)=>s+f.t*f.cf/Math.pow(1+triPot,f.t),0)/pvTot;
+const horizEq = Math.log(potEur/totalMv)/Math.log(1+triPot);
 const tMin = Math.min(...FLOWS.map(f=>f.t)), tMax = Math.max(...FLOWS.map(f=>f.t));
 const fmtY = x => x.toFixed(1).replace('.',',')+' ans';
 const KGROUPS = [
@@ -454,9 +455,9 @@ const KGROUPS = [
   {h:'Potentiel', sub:'Scénario : chaque produit enclenche son coupon à la première date possible', rows:[
     {l:'Valeur potentielle', s:(potEur/totalNom*100).toFixed(0)+'% du nominal', v:fmtEur(potEur)},
     {l:'Multiple potentiel', s:'vs valeur de marché', v:'x'+(potEur/totalMv).toFixed(2).replace('.',',')},
-    {l:'TRI potentiel', s:'actuariel, annualisé', v:pct1(triPot*100), cls:triPot>=0?'pos':'neg'}]},
+    {l:'TRI potentiel', s:'actuariel, annualisé · additif '+pct1((potEur/totalMv-1)/horizEq*100), v:pct1(triPot*100), cls:triPot>=0?'pos':'neg'}]},
   {h:'Horizon et risque', rows:[
-    {l:'Duration', s:'moyenne pondérée des flux potentiels', v:fmtY(durPot)},
+    {l:'Horizon équivalent', s:'durée qui relie le multiple au TRI', v:fmtY(horizEq)},
     {l:'Échéance des flux', s:'de la plus proche à la plus lointaine', v:tMin.toFixed(1).replace('.',',')+' à '+fmtY(tMax)},
     {l:'Marge capital min.', s:'baisse avant perte en capital', v:'−'+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+'%'}]}
 ];
@@ -715,7 +716,7 @@ document.getElementById('potTable').innerHTML =
     const actP=P.reduce((s,p)=>s+p.valo*p.notionnel,0)/totalNom;
     const potP=P.reduce((s,p)=>s+p.valeurPot*p.notionnel,0)/totalNom;
     const multP=potP/actP;
-    const durP=durPot; // même duration que le bandeau : flux potentiels actualisés au TRI
+    const durP=horizEq; // même horizon que le bandeau : multiple^(1/horizon) - 1 = TRI
     const perfP=(multP-1)/durP;
     return `<tr><td>Portefeuille (pondéré nominal)</td>
       <td>${actP.toFixed(1)}%</td>
