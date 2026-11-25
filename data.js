@@ -1,20 +1,24 @@
 // Données du suivi FIC SAA, communes aux versions FR et NL.
-// REF : référentiel produits. OBS : prix indicatifs BID Altitude (date = date de valorisation).
+// REF : référentiel produits. nonCote:true = produit sans prix BID Altitude, valorisé au pair et exclu de la valeur de marché et de la performance globale.
+// OBS : prix indicatifs BID Altitude (date = date de valorisation).
 // STOXX50 : clôtures EURO STOXX 50 (indice prix ^STOXX50E, Yahoo Finance), référence de marché.
 const RATINGS = {
   "UBS": "S&P A+ / Moody's Aa2",
   "BNP Paribas": "S&P A+ / Moody's Aa3",
   "Natixis": "S&P A+ / Moody's A1",
+  "Société Générale": "S&P A / Moody's A1",
 };
 const REF = [
-  {id:"DE000UQ0MWF3", nom:"Digital Boost Sovereignty", emetteur:"UBS", sousjacent:"MQDSOV50", indice:"Merqube Eurozone Sovereignty 50", indiceShort:"Eurozone Sovereignty", notionnel:600000, emission:"2025-08-28",
+  {id:"DE000UQ0MWF3", nom:"Digit UBS Eurozone Sovereignty", emetteur:"UBS", sousjacent:"MQDSOV50", indice:"Merqube Eurozone Sovereignty 50", indiceShort:"Eurozone Sovereignty", notionnel:600000, emission:"2025-08-28",
    couponPct:12, clickYears:9, barriereCoupon:80, barriereCapital:50, cible:"2034-09-04", color:"var(--ubs)"},
-  {id:"XS3080432829", nom:"Digital Boost Titans Note", emetteur:"BNP Paribas", sousjacent:"TITANEST", indice:"Bloomberg Eurozone Titans 50", indiceShort:"Eurozone Titans", notionnel:600000, emission:"2025-09-04",
+  {id:"XS3080432829", nom:"Digit BNPP Eurozone Titans", emetteur:"BNP Paribas", sousjacent:"TITANEST", indice:"Bloomberg Eurozone Titans 50", indiceShort:"Eurozone Titans", notionnel:600000, emission:"2025-09-04",
    couponPct:12, clickYears:9, barriereCoupon:86, barriereCapital:50, cible:"2034-09-18", color:"var(--bnp)"},
-  {id:"FR0014015IH0", nom:"Click & Lock Yield Note", emetteur:"Natixis", sousjacent:"EZLEADDG", indice:"iEdge Eurozone Leaders 10", indiceShort:"Eurozone Leaders", notionnel:1500000, emission:"2026-02-05",
+  {id:"FR0014015IH0", nom:"Click Natixis Eurozone Leaders", emetteur:"Natixis", sousjacent:"EZLEADDG", indice:"iEdge Eurozone Leaders 10", indiceShort:"Eurozone Leaders", notionnel:1500000, emission:"2026-02-05",
    couponPct:12, clickYears:5, barriereCoupon:80, barriereCapital:50, cible:"2031-02-03", color:"var(--nat)"},
-  {id:"XS3266363558", nom:"Click Switch To Bond - MSOVERNT", emetteur:"BNP Paribas", sousjacent:"MSOVERNT", indice:"Morningstar Eurozone Sovereignty Selection Fixed Basket", indiceShort:"Eurozone Sovereignty", notionnel:950000, emission:"2026-03-04",
+  {id:"XS3266363558", nom:"Click BNPP Eurozone Sovereignty", emetteur:"BNP Paribas", sousjacent:"MSOVERNT", indice:"Morningstar Eurozone Sovereignty Selection Fixed Basket", indiceShort:"Eurozone Sovereignty", notionnel:950000, emission:"2026-03-04",
    couponPct:12, clickYears:5, barriereCoupon:100, barriereCapital:50, cible:"2031-03-25", color:"var(--bnp2)"},
+  {id:"FR001401BVU9", nom:"Click SG Europe US", emetteur:"Société Générale", sousjacent:"SOUSEUD5", indice:"Panier SOUSEUD5 (60% MSE FP / 40% IUSE LN)", indiceShort:"Europe US", notionnel:1000000, emission:"2026-11-04",
+   couponPct:15.4, clickYears:5, barriereCoupon:98, barriereCapital:70, cible:"2031-11-04", color:"var(--sg)", nonCote:true},
 ];
 const OBS = [
   { date:"2025-09-01", valos:{ "DE000UQ0MWF3":{valo:97.11, perfIndice:-1.94} } },
@@ -305,7 +309,7 @@ const OBS = [
   { date:"2026-11-17", valos:{ "FR0014015IH0":{valo:81.6, perfIndice:-4.86}, "XS3266363558":{valo:89.63, perfIndice:3.76}, "DE000UQ0MWF3":{valo:101.73, perfIndice:26.03}, "XS3080432829":{valo:108, perfIndice:12.21} } },
   { date:"2026-11-18", valos:{ "FR0014015IH0":{valo:81.57, perfIndice:-4.93}, "XS3266363558":{valo:88.1, perfIndice:3.24}, "DE000UQ0MWF3":{valo:101.75, perfIndice:26.12}, "XS3080432829":{valo:105.78, perfIndice:10.88} } },
   { date:"2026-11-19", valos:{ "FR0014015IH0":{valo:81.04, perfIndice:-4.96}, "XS3266363558":{valo:87.64, perfIndice:3.28}, "DE000UQ0MWF3":{valo:100.98, perfIndice:25.25}, "XS3080432829":{valo:104.78, perfIndice:10.43} } },
-  { date:"2026-11-20", valos:{ "XS3266363558":{valo:87.11, perfIndice:-1.65}, "DE000UQ0MWF3":{valo:97.44, perfIndice:20.35}, "XS3080432829":{valo:104.48, perfIndice:6.69} } }
+  { date:"2026-11-20", valos:{ "FR001401BVU9":{valo:100, perfIndice:-5.6}, "XS3266363558":{valo:87.11, perfIndice:-1.65}, "DE000UQ0MWF3":{valo:97.44, perfIndice:20.35}, "XS3080432829":{valo:104.48, perfIndice:6.69} } }
 ];
 // Référence de marché EURO STOXX 50 (SX5E / ^STOXX50E) — clôtures quotidiennes, source Yahoo Finance.
 // N'est pas un sous-jacent des produits du FIC : affiché à titre de comparaison (indice prix SX5E, hors dividendes, sans décrément).

@@ -15,7 +15,7 @@
 :root{
   --ink:#0f1b2d; --ink2:#33475b; --muted:#6b7a8d; --line:#e2e8f0;
   --bg:#f6f8fb; --card:#ffffff;
-  --ubs:#1f6feb; --bnp:#00915a; --nat:#e8833a; --bnp2:#0a5c8a;
+  --ubs:#1f6feb; --bnp:#00915a; --nat:#e8833a; --bnp2:#0a5c8a; --sg:#c8102e;
   --pos:#0a8f5b; --neg:#c0392b; --accent:#0f1b2d;
   --barrier:#c0392b; --safe:#0a8f5b; --coupon:#c9820a; --bench:#000000;
 }
@@ -148,6 +148,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
   <div class="eyebrow">Collectief intern fonds · Portefeuille gestructureerde producten</div>
   <h1>FIC Structured Asset Allocation (SAA)</h1>
   <div class="asof" id="asof"></div>
+  <div class="asof" style="font-size:.85em;opacity:.75;margin-top:2px">Prestatie van de onderliggende waarde volgens het laatste niveau meegedeeld door Altitude, dat één tot drie werkdagen kan voorafgaan aan de datum van de indicatieve prijs.</div>
 </header>
 
 <div class="tab-nav">
@@ -157,6 +158,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
   <button class="tab-btn" data-tab="prod-XS3080432829" id="tabBtnProd_XS3080432829">Product</button>
   <button class="tab-btn" data-tab="prod-FR0014015IH0" id="tabBtnProd_FR0014015IH0">Product</button>
   <button class="tab-btn" data-tab="prod-XS3266363558" id="tabBtnProd_XS3266363558">Product</button>
+  <button class="tab-btn" data-tab="prod-FR001401BVU9" id="tabBtnProd_FR001401BVU9">Product</button>
   <button class="tab-btn" data-tab="sousjacents">Onderliggende waarden</button>
 </div>
 
@@ -192,6 +194,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
       <li><b>Liquiditeitsrisico</b> — de liquiditeit van de secundaire markt hangt af van vraag en aanbod en wordt door geen enkele partij gegarandeerd; in gespannen marktomstandigheden kan een effect moeilijk te waarderen of te verkopen worden, wat de volatiliteit van de indicatieve prijs vergroot en een vervroegde uitstap kan bemoeilijken.</li>
       <li><b>Complexiteit en geschiktheid</b> — gestructureerde en afgeleide producten houden risico's in die moeilijker te kwantificeren zijn dan eenvoudige instrumenten (aandelen, obligaties, monetaire ICB's); ze zijn bestemd voor beleggers die in staat zijn het mechanisme en de risico's ervan te begrijpen en financieel te dragen.</li>
       <li><b>Observatiefrequentie</b> — de barrières van de Digital-producten worden enkel op vervaldag vastgesteld (Europese observatie); die van de Click-producten jaarlijks vanaf jaar 5. Doorbrekingen tijdens de looptijd hebben geen effect, in beide richtingen.</li>
+      <li><b>Tijdsverschil van de prestaties</b> — de weergegeven prestatie van de onderliggende waarde is het laatste niveau meegedeeld door Altitude; zij kan één tot drie werkdagen voorafgaan aan de datum van de indicatieve prijs (BID) op dezelfde regel. In een volatiele markt weerspiegelen beide cijfers dus niet noodzakelijk dezelfde beursdag.</li>
     </ul>
 
     <h3>Te controleren punten voor verspreiding</h3>
@@ -212,7 +215,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 <div class="section-title">Kenmerken van de producten van het FIC SAA</div>
 <div class="grid" style="margin-top:16px;grid-template-columns:1fr">
   <div class="card" style="overflow-x:auto">
-    <h2>Detail van de 4 producten</h2>
+    <h2>Detail van de producten</h2>
     <div class="hint">Volledige referentie — nominaal, data, ticker, index, barrières en coupon</div>
     <table class="ref" id="refTable"></table>
   </div>
@@ -342,6 +345,24 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 </div>
 </div>
 
+<div class="tab-panel" data-panel="prod-FR001401BVU9">
+<div class="kpis" id="kpisProd_FR001401BVU9" style="margin-top:16px"></div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2>Productbeschrijving</h2>
+    <div id="descProd_FR001401BVU9" class="descprod"></div>
+  </div>
+</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2 id="titleProd_FR001401BVU9">Historiek product vs index</h2>
+    <div class="hint" id="hintProd_FR001401BVU9">Productwaardering (%) en onderliggende index herbasis 100 sinds lancering</div>
+    <div class="chartbox tall"><canvas id="cProd_FR001401BVU9"></canvas></div>
+    <div id="legendProd_FR001401BVU9"></div>
+  </div>
+</div>
+</div>
+
 <div class="tab-panel" data-panel="sousjacents">
 <div class="grid" style="margin-top:16px;grid-template-columns:1fr">
   <div class="card">
@@ -366,7 +387,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 
 
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const EMET_COLORS = {"UBS":cssv('--ubs'),"BNP Paribas":cssv('--bnp'),"Natixis":cssv('--nat')};
+const EMET_COLORS = {"UBS":cssv('--ubs'),"BNP Paribas":cssv('--bnp'),"Natixis":cssv('--nat'),"Société Générale":cssv('--sg')};
 const fmtEur = v => (v/1000).toLocaleString('nl-NL',{maximumFractionDigits:0})+" k€";
 function latestFor(id){
   for(let i=OBS.length-1;i>=0;i--){
@@ -388,12 +409,15 @@ const P = REF.map(r=>{
   const perfAn = (multiple-1)/dureeRes;
   return {...r, valo:o.valo, perfIndice:o.perfIndice, dateRelevé:o.date, mv, niveauActuel, distCoupon, distCapital, valeurPot, dureeRes, multiple, perfAn, rating:RATINGS[r.emetteur]||''};
 });
+const fmtMarge = d => d>=0 ? '−'+d.toFixed(1)+'%' : '+'+(-d).toFixed(1)+'% te herwinnen';
 const totalNom = P.reduce((s,p)=>s+p.notionnel,0);
 const totalMv  = P.reduce((s,p)=>s+p.mv,0);
-const portRet  = (totalMv/totalNom-1)*100;
+const COTES = P.filter(p=>!p.nonCote);
+const mvCote = COTES.reduce((s,p)=>s+p.mv,0), nomCote = COTES.reduce((s,p)=>s+p.notionnel,0);
+const portRet  = (mvCote/nomCote-1)*100;
 const typeLabel = p => /digit/i.test(p.nom) ? "Digit" : /click/i.test(p.nom) ? "Click" : "";
 const prodLabel = p => `${p.emetteur} ${typeLabel(p)} ${p.indiceShort}`;
-const emetteurAbbrev = p => p.emetteur === "BNP Paribas" ? "BNPP" : p.emetteur;
+const emetteurAbbrev = p => p.emetteur === "BNP Paribas" ? "BNPP" : p.emetteur === "Société Générale" ? "SG" : p.emetteur;
 const compactLabel = p => [typeLabel(p)+' '+emetteurAbbrev(p), p.indiceShort];
 const shortLabel = p => typeLabel(p)+' '+emetteurAbbrev(p)+' '+p.indiceShort;
 const asofDate = P.reduce((mx,p)=>p.dateRelevé>mx?p.dateRelevé:mx, lastDate);
@@ -402,8 +426,8 @@ document.getElementById('asof').textContent =
   +" · "+P.length+" producten · nominaal "+fmtEur(totalNom);
 const kpis=[
   {lbl:"Belegd nominaal", val:fmtEur(totalNom), sub:P.length+" producten"},
-  {lbl:"Marktwaarde", val:fmtEur(totalMv), sub:"op laatste opname"},
-  {lbl:"Totale performance", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:"t.o.v. nominaal", cls:portRet>=0?"pos":"neg"},
+  {lbl:"Marktwaarde", val:fmtEur(mvCote), sub:(COTES.length<P.length? COTES.length+" genoteerde producten, zonder niet-genoteerde SG" : "op laatste opname")},
+  {lbl:"Totale performance", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:(COTES.length<P.length? COTES.length+" genoteerde producten, t.o.v. nominaal" : "t.o.v. nominaal"), cls:portRet>=0?"pos":"neg"},
   {lbl:"Min. kapitaalmarge", val:"−"+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+"%", sub:"voor kapitaalverlies"},
 ];
 document.getElementById('kpis').innerHTML = kpis.map(k=>
@@ -624,8 +648,8 @@ document.getElementById('barrAll').innerHTML = P.map(p=>{
     <div class="top">
       <span class="name">${shortLabel(p)}</span>
       <span class="margins">
-        <span style="color:var(--barrier)">−${p.distCapital.toFixed(1)}%</span>
-        <span style="color:var(--coupon)">−${p.distCoupon.toFixed(1)}%</span>
+        <span style="color:var(--barrier)">${fmtMarge(p.distCapital)}</span>
+        <span style="color:var(--coupon)">${fmtMarge(p.distCoupon)}</span>
       </span>
     </div>
     <div class="bar-track">
@@ -691,10 +715,10 @@ const REF_DETAIL = {
     ]},
   "FR0014015IH0": {nomOfficiel:"Click & Lock Yield Note", emetteurLegal:"Natixis Structured Issuance (garant Natixis)", ticker:"EZLEADDG",
     indiceOfficiel:"iEdge Eurozone Leaders 10 EW Decrement 50 Points GTR Index", maturite:"2036-02-12", barriereCapitalTxt:"50% (-50%), op vervaldag",
-    clickTxt:"03/02/2031 daarna jaarlijks", clickBarriereTxt:"100% (jaar 5), degressief -5%/jaar tot 75% (jaar 10)", couponTxt:"12%/jaar tot de click, daarna 3%/jaar gekapitaliseerd",
+    clickTxt:"03/02/2031 daarna jaarlijks", clickBarriereTxt:"100% (jaar 5), degressief -5%/jaar tot 80% (jaar 9)", couponTxt:"12%/jaar tot de click, daarna 3%/jaar gekapitaliseerd",
     typeProduit:"Click Switch To Bond — coupon vastgeklikt en gekapitaliseerd bij de 1e doorbreking van de Click-barrière, anders eindbonus of beschermingsbarrière",
     mecanisme:[
-      "Op elke jaarlijkse vaststellingsdatum vanaf jaar 5, indien de onderliggende waarde <b>groter dan of gelijk is aan de <span style=\"color:var(--coupon)\">Click-barrière</span></b> van dat jaar (100% in jaar 5, degressief met -5%/jaar tot 75% in jaar 10): de coupons worden vastgeklikt en, samen met het nominaal, belegd tegen een vaste rente van <b>3%/jaar</b> tot vervaldag.",
+      "Op elke jaarlijkse vaststellingsdatum vanaf jaar 5, indien de onderliggende waarde <b>groter dan of gelijk is aan de <span style=\"color:var(--coupon)\">Click-barrière</span></b> van dat jaar (100% in jaar 5, degressief met -5%/jaar tot 80% in jaar 9): de coupons worden vastgeklikt en, samen met het nominaal, belegd tegen een vaste rente van <b>3%/jaar</b> tot vervaldag.",
       "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op de eindvervaldag (jaar 10) <b>groter dan of gelijk aan 75%</b> van haar beginniveau: terugbetaling van 100% van het nominaal + coupon van <b>120%</b>.",
       "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op vervaldag <b>lager dan de <span style=\"color:var(--barrier)\">beschermingsbarrière (50%)</span></b>: kapitaal terugbetaald in verhouding tot de daling van de onderliggende waarde (kapitaalverlies)."
     ]},
@@ -706,6 +730,16 @@ const REF_DETAIL = {
       "Op elke jaarlijkse vaststellingsdatum vanaf jaar 5, indien de onderliggende waarde <b>groter dan of gelijk is aan de <span style=\"color:var(--coupon)\">Click-barrière</span></b> van dat jaar (100% in jaar 5, degressief met -5,25%/jaar tot 63,25% in jaar 12): de coupons worden vastgeklikt en, samen met het nominaal, belegd tegen een vaste rente van <b>3%/jaar</b> tot vervaldag.",
       "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op de eindvervaldag (jaar 12) <b>groter dan of gelijk aan 63,25%</b> van haar beginniveau: terugbetaling van 100% van het nominaal + coupon van <b>144%</b>.",
       "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op vervaldag <b>lager dan de <span style=\"color:var(--barrier)\">beschermingsbarrière (50%)</span></b>: kapitaal terugbetaald in verhouding tot de daling van de onderliggende waarde (kapitaalverlies)."
+    ]},
+  "FR001401BVU9": {nomOfficiel:"Digit Click Bond", emetteurLegal:"SG Issuer (garant Société Générale)", ticker:"SOUSEUD5",
+    indiceOfficiel:"Mand SOUSEUD5: 60% MSE FP / 40% IUSE LN, decrement 5%", maturite:"2036-11-04", barriereCapitalTxt:"70% (-30%), op vervaldag",
+    clickTxt:"04/11/2031 daarna jaarlijks", clickBarriereTxt:"98% (jaar 5 tot 10)", couponTxt:"77% (jaar 5), daarna 84%, 90%, 96%, 100% en 105% (jaar 10)",
+    typeProduit:"Digit Click Bond — momenteel niet genoteerd: gewaardeerd a pari in afwachting van de eerste notering, buiten marktwaarde en totale performance",
+    mecanisme:[
+      "Op elke jaarlijkse vaststellingsdatum vanaf jaar 5, indien de onderliggende waarde <b>groter dan of gelijk is aan de <span style=\"color:var(--coupon)\">barrière van 98%</span></b> van haar beginniveau: vervroegde terugbetaling aan 100% van het nominaal + coupon van dat jaar (<b>77%</b> in jaar 5, daarna 84%, 90%, 96%, 100% en <b>105%</b> in jaar 10).",
+      "Werd het product niet vervroegd terugbetaald en is de onderliggende waarde op de vervaldag <b>groter dan of gelijk aan de <span style=\"color:var(--barrier)\">beschermingsbarrière (70%)</span></b>: terugbetaling van 100% van het nominaal.",
+      "Is de onderliggende waarde op de vervaldag <b>lager dan <span style=\"color:var(--barrier)\">70%</span></b> van haar beginniveau: kapitaal terugbetaald naar rato van de daling van de onderliggende waarde (kapitaalverlies).",
+      "Beginniveau: gemiddelde van de niveaus op 21/10, 04/11 en 18/11/2026. Product zonder indicatieve prijs van Altitude tot op heden: gewaardeerd a pari (100%) in afwachting van de eerste notering."
     ]},
 };
 document.getElementById('refTable').innerHTML =
@@ -824,10 +858,10 @@ function renderProductTab(p){
   const hint = document.getElementById('hintProd_'+p.id);
   if(hint) hint.textContent = 'Productwaardering (%) en '+p.indice+' herbasis 100, sinds lancering op '+new Date(p.emission).toLocaleDateString('nl-NL');
   const kpis = [
-    {lbl:'Productperformance', val:(p.valo-100>=0?'+':'')+(p.valo-100).toFixed(1)+'%', sub:'op '+new Date(p.dateRelevé).toLocaleDateString('nl-NL'), cls:p.valo-100>=0?'pos':'neg'},
+    {lbl:'Productperformance', val:p.nonCote?'—':(p.valo-100>=0?'+':'')+(p.valo-100).toFixed(1)+'%', sub:p.nonCote?'a pari, niet genoteerd':'op '+new Date(p.dateRelevé).toLocaleDateString('nl-NL'), cls:p.valo-100>=0?'pos':'neg'},
     {lbl:'Indexperformance sinds lancering', val:(p.perfIndice>=0?'+':'')+p.perfIndice.toFixed(1)+'%', sub:p.indiceShort, cls:p.perfIndice>=0?'pos':'neg'},
-    {lbl:'Marge tot kapitaalbarrière', val:'−'+p.distCapital.toFixed(1)+'%', sub:'barrière op '+p.barriereCapital+'%', color:cssv('--barrier')},
-    {lbl:'Marge tot couponbarrière', val:'−'+p.distCoupon.toFixed(1)+'%', sub:'barrière op '+p.barriereCoupon+'%', color:cssv('--coupon')},
+    {lbl:'Marge tot kapitaalbarrière', val:p.distCapital>=0?'−'+p.distCapital.toFixed(1)+'%':'+'+(-p.distCapital).toFixed(1)+'%', sub:(p.distCapital<0?'te herwinnen, ':'')+'barrière op '+p.barriereCapital+'%', color:cssv('--barrier')},
+    {lbl:'Marge tot couponbarrière', val:p.distCoupon>=0?'−'+p.distCoupon.toFixed(1)+'%':'+'+(-p.distCoupon).toFixed(1)+'%', sub:(p.distCoupon<0?'te herwinnen, ':'')+'barrière op '+p.barriereCoupon+'%', color:cssv('--coupon')},
   ];
   const kpiEl = document.getElementById('kpisProd_'+p.id);
   if(kpiEl) kpiEl.innerHTML = kpis.map(k=>
@@ -924,7 +958,7 @@ function renderProductTab(p){
     <div class="item"><span class="ln dashlong" style="--c:${cssv('--coupon')}"></span><span>Couponbarrière (${p.barriereCoupon}%)</span></div>
   </div>`;
 }
-['DE000UQ0MWF3','XS3080432829','FR0014015IH0','XS3266363558'].forEach(id=>renderProductTab(P.find(p=>p.id===id)));
+['DE000UQ0MWF3','XS3080432829','FR0014015IH0','XS3266363558','FR001401BVU9'].forEach(id=>renderProductTab(P.find(p=>p.id===id)));
 
 function indiceSeriesFor(p){
   return allDates.map(d=>{

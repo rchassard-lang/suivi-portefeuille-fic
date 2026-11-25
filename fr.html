@@ -15,7 +15,7 @@
 :root{
   --ink:#0f1b2d; --ink2:#33475b; --muted:#6b7a8d; --line:#e2e8f0;
   --bg:#f6f8fb; --card:#ffffff;
-  --ubs:#1f6feb; --bnp:#00915a; --nat:#e8833a; --bnp2:#0a5c8a;
+  --ubs:#1f6feb; --bnp:#00915a; --nat:#e8833a; --bnp2:#0a5c8a; --sg:#c8102e;
   --pos:#0a8f5b; --neg:#c0392b; --accent:#0f1b2d;
   --barrier:#c0392b; --safe:#0a8f5b; --coupon:#c9820a; --bench:#000000;
 }
@@ -148,6 +148,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
   <div class="eyebrow">Fonds interne collectif · Portefeuille produits structurés</div>
   <h1>FIC Structured Asset Allocation (SAA)</h1>
   <div class="asof" id="asof"></div>
+  <div class="asof" style="font-size:.85em;opacity:.75;margin-top:2px">Performance du sous-jacent au dernier niveau communiqué par Altitude, qui peut précéder de un à trois jours ouvrés la date du prix indicatif.</div>
 </header>
 
 <div class="tab-nav">
@@ -157,6 +158,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
   <button class="tab-btn" data-tab="prod-XS3080432829" id="tabBtnProd_XS3080432829">Produit</button>
   <button class="tab-btn" data-tab="prod-FR0014015IH0" id="tabBtnProd_FR0014015IH0">Produit</button>
   <button class="tab-btn" data-tab="prod-XS3266363558" id="tabBtnProd_XS3266363558">Produit</button>
+  <button class="tab-btn" data-tab="prod-FR001401BVU9" id="tabBtnProd_FR001401BVU9">Produit</button>
   <button class="tab-btn" data-tab="sousjacents">Sous-jacents</button>
 </div>
 
@@ -192,6 +194,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
       <li><b>Risque de liquidité</b> — la liquidité du marché secondaire dépend de l'offre et de la demande et n'est garantie par aucun intervenant ; en conditions de marché tendues, un titre peut devenir difficile à valoriser ou à céder, ce qui accentue la volatilité du prix indicatif et peut pénaliser une sortie anticipée.</li>
       <li><b>Complexité et adéquation</b> — les produits structurés et dérivés comportent des risques plus difficiles à quantifier que les instruments simples (actions, obligations, OPC monétaires) ; ils s'adressent à des investisseurs en mesure d'en comprendre le mécanisme et les risques, et de les supporter financièrement.</li>
       <li><b>Fréquence d'observation</b> — les barrières des produits Digital ne sont observées qu'à maturité (observation européenne) ; celles des produits Click annuellement à partir de l'année 5. Les franchissements en cours de vie sont sans effet, dans les deux sens.</li>
+      <li><b>Décalage des performances</b> — la performance du sous-jacent affichée est le dernier niveau communiqué par Altitude ; elle peut précéder de un à trois jours ouvrés la date du prix indicatif (BID) présenté sur la même ligne. En marché volatil, les deux chiffres peuvent donc ne pas refléter la même séance.</li>
     </ul>
 
     <h3>Points à vérifier avant diffusion</h3>
@@ -212,7 +215,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 <div class="section-title">Caractéristiques des produits du FIC SAA</div>
 <div class="grid" style="margin-top:16px;grid-template-columns:1fr">
   <div class="card" style="overflow-x:auto">
-    <h2>Détail des 4 produits</h2>
+    <h2>Détail des produits</h2>
     <div class="hint">Référence complète — notionnel, dates, ticker, indice, barrières et coupon</div>
     <table class="ref" id="refTable"></table>
   </div>
@@ -342,6 +345,24 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 </div>
 </div>
 
+<div class="tab-panel" data-panel="prod-FR001401BVU9">
+<div class="kpis" id="kpisProd_FR001401BVU9" style="margin-top:16px"></div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2>Descriptif du produit</h2>
+    <div id="descProd_FR001401BVU9" class="descprod"></div>
+  </div>
+</div>
+<div class="grid" style="margin-top:16px;grid-template-columns:1fr">
+  <div class="card">
+    <h2 id="titleProd_FR001401BVU9">Historique produit vs indice</h2>
+    <div class="hint" id="hintProd_FR001401BVU9">Valo produit (%) et indice sous-jacent rebasé à 100 depuis le lancement</div>
+    <div class="chartbox tall"><canvas id="cProd_FR001401BVU9"></canvas></div>
+    <div id="legendProd_FR001401BVU9"></div>
+  </div>
+</div>
+</div>
+
 <div class="tab-panel" data-panel="sousjacents">
 <div class="grid" style="margin-top:16px;grid-template-columns:1fr">
   <div class="card">
@@ -366,7 +387,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 
 
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const EMET_COLORS = {"UBS":cssv('--ubs'),"BNP Paribas":cssv('--bnp'),"Natixis":cssv('--nat')};
+const EMET_COLORS = {"UBS":cssv('--ubs'),"BNP Paribas":cssv('--bnp'),"Natixis":cssv('--nat'),"Société Générale":cssv('--sg')};
 const fmtEur = v => (v/1000).toLocaleString('fr-FR',{maximumFractionDigits:0})+" k€";
 function latestFor(id){
   for(let i=OBS.length-1;i>=0;i--){
@@ -388,12 +409,15 @@ const P = REF.map(r=>{
   const perfAn = (multiple-1)/dureeRes;
   return {...r, valo:o.valo, perfIndice:o.perfIndice, dateRelevé:o.date, mv, niveauActuel, distCoupon, distCapital, valeurPot, dureeRes, multiple, perfAn, rating:RATINGS[r.emetteur]||''};
 });
+const fmtMarge = d => d>=0 ? '−'+d.toFixed(1)+'%' : '+'+(-d).toFixed(1)+'% à regagner';
 const totalNom = P.reduce((s,p)=>s+p.notionnel,0);
 const totalMv  = P.reduce((s,p)=>s+p.mv,0);
-const portRet  = (totalMv/totalNom-1)*100;
+const COTES = P.filter(p=>!p.nonCote);
+const mvCote = COTES.reduce((s,p)=>s+p.mv,0), nomCote = COTES.reduce((s,p)=>s+p.notionnel,0);
+const portRet  = (mvCote/nomCote-1)*100;
 const typeLabel = p => /digit/i.test(p.nom) ? "Digit" : /click/i.test(p.nom) ? "Click" : "";
 const prodLabel = p => `${p.emetteur} ${typeLabel(p)} ${p.indiceShort}`;
-const emetteurAbbrev = p => p.emetteur === "BNP Paribas" ? "BNPP" : p.emetteur;
+const emetteurAbbrev = p => p.emetteur === "BNP Paribas" ? "BNPP" : p.emetteur === "Société Générale" ? "SG" : p.emetteur;
 const compactLabel = p => [typeLabel(p)+' '+emetteurAbbrev(p), p.indiceShort];
 const shortLabel = p => typeLabel(p)+' '+emetteurAbbrev(p)+' '+p.indiceShort;
 const asofDate = P.reduce((mx,p)=>p.dateRelevé>mx?p.dateRelevé:mx, lastDate);
@@ -402,8 +426,8 @@ document.getElementById('asof').textContent =
   +" · "+P.length+" produits · notionnel "+fmtEur(totalNom);
 const kpis=[
   {lbl:"Notionnel investi", val:fmtEur(totalNom), sub:P.length+" produits"},
-  {lbl:"Valeur de marché", val:fmtEur(totalMv), sub:"au dernier relevé"},
-  {lbl:"Performance globale", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:"vs nominal", cls:portRet>=0?"pos":"neg"},
+  {lbl:"Valeur de marché", val:fmtEur(mvCote), sub:(COTES.length<P.length? COTES.length+" produits cotés, hors SG non coté" : "au dernier relevé")},
+  {lbl:"Performance globale", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:(COTES.length<P.length? COTES.length+" produits cotés, vs nominal" : "vs nominal"), cls:portRet>=0?"pos":"neg"},
   {lbl:"Marge capital min.", val:"−"+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+"%", sub:"avant perte en capital"},
 ];
 document.getElementById('kpis').innerHTML = kpis.map(k=>
@@ -624,8 +648,8 @@ document.getElementById('barrAll').innerHTML = P.map(p=>{
     <div class="top">
       <span class="name">${shortLabel(p)}</span>
       <span class="margins">
-        <span style="color:var(--barrier)">−${p.distCapital.toFixed(1)}%</span>
-        <span style="color:var(--coupon)">−${p.distCoupon.toFixed(1)}%</span>
+        <span style="color:var(--barrier)">${fmtMarge(p.distCapital)}</span>
+        <span style="color:var(--coupon)">${fmtMarge(p.distCoupon)}</span>
       </span>
     </div>
     <div class="bar-track">
@@ -691,10 +715,10 @@ const REF_DETAIL = {
     ]},
   "FR0014015IH0": {nomOfficiel:"Click & Lock Yield Note", emetteurLegal:"Natixis Structured Issuance (Gar. Natixis)", ticker:"EZLEADDG",
     indiceOfficiel:"iEdge Eurozone Leaders 10 EW Decrement 50 Points GTR Index", maturite:"2036-02-12", barriereCapitalTxt:"50% (-50%), à maturité",
-    clickTxt:"03/02/2031 puis annuellement", clickBarriereTxt:"100% (année 5), dégressive -5%/an jusqu'à 75% (année 10)", couponTxt:"12%/an jusqu'au click, puis 3%/an capitalisé",
+    clickTxt:"03/02/2031 puis annuellement", clickBarriereTxt:"100% (année 5), dégressive -5%/an jusqu'à 80% (année 9)", couponTxt:"12%/an jusqu'au click, puis 3%/an capitalisé",
     typeProduit:"Click Switch To Bond — coupon acté et capitalisé au 1er franchissement de la barrière Click, sinon bonus final ou barrière de protection",
     mecanisme:[
-      "À chaque date de constatation annuelle à partir de l'année 5, si le sous-jacent est <b>supérieur ou égal à la <span style=\"color:var(--coupon)\">barrière Click</span></b> de l'année (100% en année 5, dégressive de -5%/an jusqu'à 75% en année 10) : les coupons sont actés et, avec le nominal, placés à un taux fixe de <b>3%/an</b> jusqu'à maturité.",
+      "À chaque date de constatation annuelle à partir de l'année 5, si le sous-jacent est <b>supérieur ou égal à la <span style=\"color:var(--coupon)\">barrière Click</span></b> de l'année (100% en année 5, dégressive de -5%/an jusqu'à 80% en année 9) : les coupons sont actés et, avec le nominal, placés à un taux fixe de <b>3%/an</b> jusqu'à maturité.",
       "Si la barrière Click n'a jamais été activée et qu'à l'échéance finale (année 10) le sous-jacent est <b>supérieur ou égal à 75%</b> de son niveau initial : remboursement de 100% du nominal + coupon de <b>120%</b>.",
       "Si la barrière Click n'a jamais été activée et qu'à l'échéance le sous-jacent est <b>inférieur à la <span style=\"color:var(--barrier)\">barrière de protection (50%)</span></b> : capital remboursé à due proportion de la baisse du sous-jacent (perte en capital)."
     ]},
@@ -706,6 +730,16 @@ const REF_DETAIL = {
       "À chaque date de constatation annuelle à partir de l'année 5, si le sous-jacent est <b>supérieur ou égal à la <span style=\"color:var(--coupon)\">barrière Click</span></b> de l'année (100% en année 5, dégressive de -5,25%/an jusqu'à 63,25% en année 12) : les coupons sont actés et, avec le nominal, placés à un taux fixe de <b>3%/an</b> jusqu'à maturité.",
       "Si la barrière Click n'a jamais été activée et qu'à l'échéance finale (année 12) le sous-jacent est <b>supérieur ou égal à 63,25%</b> de son niveau initial : remboursement de 100% du nominal + coupon de <b>144%</b>.",
       "Si la barrière Click n'a jamais été activée et qu'à l'échéance le sous-jacent est <b>inférieur à la <span style=\"color:var(--barrier)\">barrière de protection (50%)</span></b> : capital remboursé à due proportion de la baisse du sous-jacent (perte en capital)."
+    ]},
+  "FR001401BVU9": {nomOfficiel:"Digit Click Bond", emetteurLegal:"SG Issuer (Gar. Société Générale)", ticker:"SOUSEUD5",
+    indiceOfficiel:"Panier SOUSEUD5 : 60% MSE FP / 40% IUSE LN, décrément 5%", maturite:"2036-11-04", barriereCapitalTxt:"70% (-30%), à maturité",
+    clickTxt:"04/11/2031 puis annuellement", clickBarriereTxt:"98% (années 5 à 10)", couponTxt:"77% (année 5), puis 84%, 90%, 96%, 100% et 105% (année 10)",
+    typeProduit:"Digit Click Bond — non coté à ce jour : valorisé au pair en attendant la première cotation, hors valeur de marché et performance globale",
+    mecanisme:[
+      "À chaque date de constatation annuelle à partir de l'année 5, si le sous-jacent est <b>supérieur ou égal à la <span style=\"color:var(--coupon)\">barrière de 98%</span></b> de son niveau initial : remboursement anticipé à 100% du nominal + coupon de l'année (<b>77%</b> en année 5, puis 84%, 90%, 96%, 100% et <b>105%</b> en année 10).",
+      "Si le produit n'a pas été remboursé par anticipation et qu'à l'échéance le sous-jacent est <b>supérieur ou égal à la <span style=\"color:var(--barrier)\">barrière de protection (70%)</span></b> : remboursement de 100% du nominal.",
+      "Si à l'échéance le sous-jacent est <b>inférieur à <span style=\"color:var(--barrier)\">70%</span></b> de son niveau initial : capital remboursé à due proportion de la baisse du sous-jacent (perte en capital).",
+      "Niveau initial : moyenne des niveaux des 21/10, 04/11 et 18/11/2026. Produit sans prix indicatif Altitude à ce jour : valorisé au pair (100%) en attendant la première cotation."
     ]},
 };
 document.getElementById('refTable').innerHTML =
@@ -825,10 +859,10 @@ function renderProductTab(p){
   const hint = document.getElementById('hintProd_'+p.id);
   if(hint) hint.textContent = 'Valo produit (%) et '+p.indice+' rebasé à 100, depuis le lancement le '+new Date(p.emission).toLocaleDateString('fr-FR');
   const kpis = [
-    {lbl:'Perf produit', val:(p.valo-100>=0?'+':'')+(p.valo-100).toFixed(1)+'%', sub:'au '+new Date(p.dateRelevé).toLocaleDateString('fr-FR'), cls:p.valo-100>=0?'pos':'neg'},
+    {lbl:'Perf produit', val:p.nonCote?'—':(p.valo-100>=0?'+':'')+(p.valo-100).toFixed(1)+'%', sub:p.nonCote?'au pair, non coté':'au '+new Date(p.dateRelevé).toLocaleDateString('fr-FR'), cls:p.valo-100>=0?'pos':'neg'},
     {lbl:'Perf indice depuis lancement', val:(p.perfIndice>=0?'+':'')+p.perfIndice.toFixed(1)+'%', sub:p.indiceShort, cls:p.perfIndice>=0?'pos':'neg'},
-    {lbl:'Marge avant barrière capital', val:'−'+p.distCapital.toFixed(1)+'%', sub:'barrière à '+p.barriereCapital+'%', color:cssv('--barrier')},
-    {lbl:'Marge avant barrière coupon', val:'−'+p.distCoupon.toFixed(1)+'%', sub:'barrière à '+p.barriereCoupon+'%', color:cssv('--coupon')},
+    {lbl:'Marge avant barrière capital', val:p.distCapital>=0?'−'+p.distCapital.toFixed(1)+'%':'+'+(-p.distCapital).toFixed(1)+'%', sub:(p.distCapital<0?'à regagner, ':'')+'barrière à '+p.barriereCapital+'%', color:cssv('--barrier')},
+    {lbl:'Marge avant barrière coupon', val:p.distCoupon>=0?'−'+p.distCoupon.toFixed(1)+'%':'+'+(-p.distCoupon).toFixed(1)+'%', sub:(p.distCoupon<0?'à regagner, ':'')+'barrière à '+p.barriereCoupon+'%', color:cssv('--coupon')},
   ];
   const kpiEl = document.getElementById('kpisProd_'+p.id);
   if(kpiEl) kpiEl.innerHTML = kpis.map(k=>
@@ -926,7 +960,7 @@ function renderProductTab(p){
     <div class="item"><span class="ln dashlong" style="--c:${cssv('--coupon')}"></span><span>Barrière coupon (${p.barriereCoupon}%)</span></div>
   </div>`;
 }
-['DE000UQ0MWF3','XS3080432829','FR0014015IH0','XS3266363558'].forEach(id=>renderProductTab(P.find(p=>p.id===id)));
+['DE000UQ0MWF3','XS3080432829','FR0014015IH0','XS3266363558','FR001401BVU9'].forEach(id=>renderProductTab(P.find(p=>p.id===id)));
 
 function indiceSeriesFor(p){
   return allDates.map(d=>{
