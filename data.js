@@ -1,5 +1,5 @@
 // Données du suivi FIC SAA, communes aux versions FR et NL.
-// REF : référentiel produits. nonCote:true = produit sans prix BID Altitude, valorisé au pair et exclu de la valeur de marché et de la performance globale.
+// REF : référentiel produits. nonCote:true = produit sans prix BID Altitude, valorisé au pair, y compris dans la valeur de marché et la performance globale.
 // OBS : prix indicatifs BID Altitude (date = date de valorisation).
 // STOXX50 : clôtures EURO STOXX 50 (indice prix ^STOXX50E, Yahoo Finance), référence de marché.
 const RATINGS = {
@@ -14,11 +14,11 @@ const REF = [
   {id:"XS3080432829", nom:"Digit BNPP Eurozone Titans", emetteur:"BNP Paribas", sousjacent:"TITANEST", indice:"Bloomberg Eurozone Titans 50", indiceShort:"Eurozone Titans", notionnel:600000, emission:"2025-09-04",
    couponPct:12, clickYears:9, barriereCoupon:86, barriereCapital:50, cible:"2034-09-18", color:"var(--bnp)"},
   {id:"FR0014015IH0", nom:"Click Natixis Eurozone Leaders", emetteur:"Natixis", sousjacent:"EZLEADDG", indice:"iEdge Eurozone Leaders 10", indiceShort:"Eurozone Leaders", notionnel:1500000, emission:"2026-02-05",
-   couponPct:12, clickYears:5, barriereCoupon:80, barriereCapital:50, cible:"2031-02-03", color:"var(--nat)"},
+   couponPct:12, clickYears:5, barriereCoupon:100, barriereCapital:50, cible:"2031-02-03", color:"var(--nat)"},
   {id:"XS3266363558", nom:"Click BNPP Eurozone Sovereignty", emetteur:"BNP Paribas", sousjacent:"MSOVERNT", indice:"Morningstar Eurozone Sovereignty Selection Fixed Basket", indiceShort:"Eurozone Sovereignty", notionnel:950000, emission:"2026-03-04",
    couponPct:12, clickYears:5, barriereCoupon:100, barriereCapital:50, cible:"2031-03-25", color:"var(--bnp2)"},
-  {id:"FR001401BVU9", nom:"Click SG Europe US", emetteur:"Société Générale", sousjacent:"SOUSEUD5", indice:"Panier SOUSEUD5 (60% MSE FP / 40% IUSE LN)", indiceShort:"Europe US", notionnel:1000000, emission:"2026-11-04",
-   couponPct:15.4, clickYears:5, barriereCoupon:98, barriereCapital:70, cible:"2031-11-04", color:"var(--sg)", nonCote:true},
+  {id:"FR001401BVU9", nom:"Click SG Europe US", emetteur:"Société Générale", sousjacent:"SOUSEUD5", indice:"Solactive US Europe 40/60 Daily Weighted Select 5% AR", indiceShort:"Europe US", notionnel:1000000, emission:"2026-11-04",
+   couponPct:15.4, clickYears:5, barriereCoupon:98, barriereCapital:70, cible:"2036-11-25", color:"var(--sg)", nonCote:true},
 ];
 const OBS = [
   { date:"2025-09-01", valos:{ "DE000UQ0MWF3":{valo:97.11, perfIndice:-1.94} } },

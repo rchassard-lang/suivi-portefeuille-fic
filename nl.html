@@ -154,11 +154,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 <div class="tab-nav">
   <button class="tab-btn active" data-tab="disclaimer">Disclaimer</button>
   <button class="tab-btn" data-tab="dashboard">Dashboard</button>
-  <button class="tab-btn" data-tab="prod-DE000UQ0MWF3" id="tabBtnProd_DE000UQ0MWF3">Product</button>
-  <button class="tab-btn" data-tab="prod-XS3080432829" id="tabBtnProd_XS3080432829">Product</button>
-  <button class="tab-btn" data-tab="prod-FR0014015IH0" id="tabBtnProd_FR0014015IH0">Product</button>
-  <button class="tab-btn" data-tab="prod-XS3266363558" id="tabBtnProd_XS3266363558">Product</button>
-  <button class="tab-btn" data-tab="prod-FR001401BVU9" id="tabBtnProd_FR001401BVU9">Product</button>
+  <button class="tab-btn" data-tab="produit" id="tabBtnParProduit">Per product</button>
   <button class="tab-btn" data-tab="sousjacents">Onderliggende waarden</button>
 </div>
 
@@ -273,6 +269,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 <footer id="foot"></footer>
 </div>
 
+<div id="prodNav" style="display:none;margin:4px 0 18px;align-items:center;gap:10px"><label for="prodSelect" style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Product</label><select id="prodSelect" style="font-family:inherit;font-size:14px;font-weight:600;padding:8px 12px;border:1px solid var(--line,#d0d5dd);border-radius:8px;background:var(--card,#fff);color:var(--ink);min-width:320px;cursor:pointer"></select></div>
 <div class="tab-panel" data-panel="prod-DE000UQ0MWF3">
 <div class="kpis" id="kpisProd_DE000UQ0MWF3" style="margin-top:16px"></div>
 <div class="grid" style="margin-top:16px;grid-template-columns:1fr">
@@ -414,7 +411,7 @@ const totalNom = P.reduce((s,p)=>s+p.notionnel,0);
 const totalMv  = P.reduce((s,p)=>s+p.mv,0);
 const COTES = P.filter(p=>!p.nonCote);
 const mvCote = COTES.reduce((s,p)=>s+p.mv,0), nomCote = COTES.reduce((s,p)=>s+p.notionnel,0);
-const portRet  = (mvCote/nomCote-1)*100;
+const portRet  = (totalMv/totalNom-1)*100;
 const typeLabel = p => /digit/i.test(p.nom) ? "Digit" : /click/i.test(p.nom) ? "Click" : "";
 const prodLabel = p => `${p.emetteur} ${typeLabel(p)} ${p.indiceShort}`;
 const emetteurAbbrev = p => p.emetteur === "BNP Paribas" ? "BNPP" : p.emetteur === "Société Générale" ? "SG" : p.emetteur;
@@ -426,8 +423,8 @@ document.getElementById('asof').textContent =
   +" · "+P.length+" producten · nominaal "+fmtEur(totalNom);
 const kpis=[
   {lbl:"Belegd nominaal", val:fmtEur(totalNom), sub:P.length+" producten"},
-  {lbl:"Marktwaarde", val:fmtEur(mvCote), sub:(COTES.length<P.length? COTES.length+" genoteerde producten, zonder niet-genoteerde SG" : "op laatste opname")},
-  {lbl:"Totale performance", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:(COTES.length<P.length? COTES.length+" genoteerde producten, t.o.v. nominaal" : "t.o.v. nominaal"), cls:portRet>=0?"pos":"neg"},
+  {lbl:"Marktwaarde", val:fmtEur(totalMv), sub:(COTES.length<P.length? "5 producten, waarvan SG a pari (niet genoteerd)" : "op laatste opname")},
+  {lbl:"Totale performance", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:(COTES.length<P.length? "5 producten waarvan SG a pari, t.o.v. nominaal" : "t.o.v. nominaal"), cls:portRet>=0?"pos":"neg"},
   {lbl:"Min. kapitaalmarge", val:"−"+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+"%", sub:"voor kapitaalverlies"},
 ];
 document.getElementById('kpis').innerHTML = kpis.map(k=>
@@ -732,14 +729,15 @@ const REF_DETAIL = {
       "Werd de Click-barrière nooit geactiveerd en is de onderliggende waarde op vervaldag <b>lager dan de <span style=\"color:var(--barrier)\">beschermingsbarrière (50%)</span></b>: kapitaal terugbetaald in verhouding tot de daling van de onderliggende waarde (kapitaalverlies)."
     ]},
   "FR001401BVU9": {nomOfficiel:"Digit Click Bond", emetteurLegal:"SG Issuer (garant Société Générale)", ticker:"SOUSEUD5",
-    indiceOfficiel:"Mand SOUSEUD5: 60% MSE FP / 40% IUSE LN, decrement 5%", maturite:"2036-11-04", barriereCapitalTxt:"70% (-30%), op vervaldag",
-    clickTxt:"04/11/2031 daarna jaarlijks", clickBarriereTxt:"98% (jaar 5 tot 10)", couponTxt:"77% (jaar 5), daarna 84%, 90%, 96%, 100% en 105% (jaar 10)",
-    typeProduit:"Digit Click Bond — momenteel niet genoteerd: gewaardeerd a pari in afwachting van de eerste notering, buiten marktwaarde en totale performance",
+    indiceOfficiel:"Solactive US Europe 40/60 Daily Weighted Select 5% AR Index", maturite:"2036-11-25", barriereCapitalTxt:"70% (-30%), op vervaldag, tenzij click plaatsvond",
+    clickTxt:"12/11/2031 daarna jaarlijks", clickBarriereTxt:"98% (-2%), jaar 5 tot 10", couponTxt:"77% (jaar 5), 84%, 90%, 96%, 100%, 105% (jaar 10), uitbetaald op vervaldag",
+    typeProduit:"Digit Click Bond — coupon vastgeklikt bij de eerste doorbreking van de barrière van 98%, uitbetaald op vervaldag; momenteel niet genoteerd, gewaardeerd a pari (ook in de marktwaarde en de totale performance)",
     mecanisme:[
-      "Op elke jaarlijkse vaststellingsdatum vanaf jaar 5, indien de onderliggende waarde <b>groter dan of gelijk is aan de <span style=\"color:var(--coupon)\">barrière van 98%</span></b> van haar beginniveau: vervroegde terugbetaling aan 100% van het nominaal + coupon van dat jaar (<b>77%</b> in jaar 5, daarna 84%, 90%, 96%, 100% en <b>105%</b> in jaar 10).",
-      "Werd het product niet vervroegd terugbetaald en is de onderliggende waarde op de vervaldag <b>groter dan of gelijk aan de <span style=\"color:var(--barrier)\">beschermingsbarrière (70%)</span></b>: terugbetaling van 100% van het nominaal.",
-      "Is de onderliggende waarde op de vervaldag <b>lager dan <span style=\"color:var(--barrier)\">70%</span></b> van haar beginniveau: kapitaal terugbetaald naar rato van de daling van de onderliggende waarde (kapitaalverlies).",
-      "Beginniveau: gemiddelde van de niveaus op 21/10, 04/11 en 18/11/2026. Product zonder indicatieve prijs van Altitude tot op heden: gewaardeerd a pari (100%) in afwachting van de eerste notering."
+      "Op elke jaarlijkse waarderingsdatum van jaar 5 tot jaar 10 (12/11/2031 tot 12/11/2036), indien de onderliggende waarde voor het eerst <b>groter dan of gelijk is aan de <span style=\"color:var(--coupon)\">barrière van 98%</span></b> van haar beginniveau: de coupon van dat jaar is definitief verworven (<b>77%</b> in jaar 5, daarna 84%, 90%, 96%, 100% en <b>105%</b> in jaar 10). Hij wordt samen met het nominaal uitbetaald op de vervaldag van 25/11/2036: geen vervroegde terugbetaling.",
+      "Werd een coupon verworven, dan wordt het kapitaal op de vervaldag aan 100% terugbetaald, ongeacht het eindniveau van de onderliggende waarde.",
+      "Werd geen coupon verworven en is de onderliggende waarde op de vervaldag <b>groter dan of gelijk aan de <span style=\"color:var(--barrier)\">beschermingsbarrière (70%)</span></b>: terugbetaling van 100% van het nominaal, zonder coupon.",
+      "Werd geen coupon verworven en is de onderliggende waarde op de vervaldag <b>lager dan <span style=\"color:var(--barrier)\">70%</span></b> van haar beginniveau: kapitaal terugbetaald naar rato van de daling van de onderliggende waarde (kapitaalverlies).",
+      "Beginniveau: 1 256,56 punten, gemiddelde van de slotkoersen op 21/10, 04/11 en 18/11/2026. Product zonder indicatieve prijs van Altitude tot op heden: gewaardeerd a pari (100%) in afwachting van de eerste notering."
     ]},
 };
 document.getElementById('refTable').innerHTML =
@@ -1111,12 +1109,22 @@ document.querySelectorAll('#periodNav .period-btn').forEach(btn=>{
     renderSousJacents(btn.dataset.period);
   });
 });
+const prodSelect = document.getElementById('prodSelect'), prodNav = document.getElementById('prodNav');
+['DE000UQ0MWF3','XS3080432829','FR0014015IH0','XS3266363558','FR001401BVU9'].forEach(id=>{ const p=P.find(x=>x.id===id); const o=document.createElement('option'); o.value=id; o.textContent=shortLabel(p)+'  ·  '+id; prodSelect.appendChild(o); });
+function showPanel(panel){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  panel.classList.add('active');
+  requestAnimationFrame(()=>{ panel.querySelectorAll('canvas').forEach(c=>{ const ch=Chart.getChart(c); if(ch) ch.resize(); }); });
+}
+prodSelect.addEventListener('change', ()=> showPanel(document.querySelector(`.tab-panel[data-panel="prod-${prodSelect.value}"]`)));
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
-    const panel = document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`);
+    const isProd = btn.dataset.tab==='produit';
+    prodNav.style.display = isProd ? 'flex' : 'none';
+    const panel = document.querySelector(`.tab-panel[data-panel="${isProd ? 'prod-'+prodSelect.value : btn.dataset.tab}"]`);
     panel.classList.add('active');
     // Grafieken gemaakt in een verborgen tab detecteren hun grootte niet: we schalen ze bij weergave
     requestAnimationFrame(()=>{
@@ -1128,7 +1136,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   });
 });
 document.getElementById('foot').textContent =
-  "Potentiële waarde = waarde bij click, coupon geactiveerd, scenario met index bevroren op vandaag (UBS/BNP Titans op eindvervaldag 9 jaar → 100%+9×12%; Natixis 1e click 5 jaar → 100%+5×12%; BNP MSOVERNT 1e click 5 jaar → 100%+5×12%, vereenvoudigde schatting die het werkelijke switch-to-bond-mechanisme na de click tegen 3% p.a. gekapitaliseerd niet modelleert). Afstand tot barrière = daling die de index kan opvangen voor de beschermings- of couponbarrière wordt doorbroken (UBS 80% / BNP Titans 86% / Natixis 80% / BNP MSOVERNT 100% in jaar 5, daarna degressief). Gegevens bij elke opname bij te werken in het blok bovenaan het bestand.";
+  "Potentiële waarde = waarde bij click, coupon geactiveerd, scenario met index bevroren op vandaag (UBS/BNP Titans op eindvervaldag 9 jaar → 100%+9×12%; Natixis 1e click 5 jaar → 100%+5×12%; BNP MSOVERNT 1e click 5 jaar → 100%+5×12%, vereenvoudigde schatting die het werkelijke switch-to-bond-mechanisme na de click tegen 3% p.a. gekapitaliseerd niet modelleert). Afstand tot barrière = daling die de index kan opvangen voor de beschermings- of couponbarrière wordt doorbroken (UBS 80% / BNP Titans 86% / Natixis 100% in jaar 5 (80% in jaar 9) / BNP MSOVERNT 100% in jaar 5, daarna degressief). Gegevens bij elke opname bij te werken in het blok bovenaan het bestand. Click SG Europe US: coupon van 77% verworven bij de 1e click (jaar 5, barrière 98%), uitbetaald op de vervaldag van 25/11/2036 → 177% op vervaldag.";
 </script>
 </body>
 </html>

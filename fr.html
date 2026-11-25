@@ -154,11 +154,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 <div class="tab-nav">
   <button class="tab-btn active" data-tab="disclaimer">Avertissement</button>
   <button class="tab-btn" data-tab="dashboard">Tableau de bord</button>
-  <button class="tab-btn" data-tab="prod-DE000UQ0MWF3" id="tabBtnProd_DE000UQ0MWF3">Produit</button>
-  <button class="tab-btn" data-tab="prod-XS3080432829" id="tabBtnProd_XS3080432829">Produit</button>
-  <button class="tab-btn" data-tab="prod-FR0014015IH0" id="tabBtnProd_FR0014015IH0">Produit</button>
-  <button class="tab-btn" data-tab="prod-XS3266363558" id="tabBtnProd_XS3266363558">Produit</button>
-  <button class="tab-btn" data-tab="prod-FR001401BVU9" id="tabBtnProd_FR001401BVU9">Produit</button>
+  <button class="tab-btn" data-tab="produit" id="tabBtnParProduit">Par produit</button>
   <button class="tab-btn" data-tab="sousjacents">Sous-jacents</button>
 </div>
 
@@ -273,6 +269,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 <footer id="foot"></footer>
 </div>
 
+<div id="prodNav" style="display:none;margin:4px 0 18px;align-items:center;gap:10px"><label for="prodSelect" style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Produit</label><select id="prodSelect" style="font-family:inherit;font-size:14px;font-weight:600;padding:8px 12px;border:1px solid var(--line,#d0d5dd);border-radius:8px;background:var(--card,#fff);color:var(--ink);min-width:320px;cursor:pointer"></select></div>
 <div class="tab-panel" data-panel="prod-DE000UQ0MWF3">
 <div class="kpis" id="kpisProd_DE000UQ0MWF3" style="margin-top:16px"></div>
 <div class="grid" style="margin-top:16px;grid-template-columns:1fr">
@@ -414,7 +411,7 @@ const totalNom = P.reduce((s,p)=>s+p.notionnel,0);
 const totalMv  = P.reduce((s,p)=>s+p.mv,0);
 const COTES = P.filter(p=>!p.nonCote);
 const mvCote = COTES.reduce((s,p)=>s+p.mv,0), nomCote = COTES.reduce((s,p)=>s+p.notionnel,0);
-const portRet  = (mvCote/nomCote-1)*100;
+const portRet  = (totalMv/totalNom-1)*100;
 const typeLabel = p => /digit/i.test(p.nom) ? "Digit" : /click/i.test(p.nom) ? "Click" : "";
 const prodLabel = p => `${p.emetteur} ${typeLabel(p)} ${p.indiceShort}`;
 const emetteurAbbrev = p => p.emetteur === "BNP Paribas" ? "BNPP" : p.emetteur === "Société Générale" ? "SG" : p.emetteur;
@@ -426,8 +423,8 @@ document.getElementById('asof').textContent =
   +" · "+P.length+" produits · notionnel "+fmtEur(totalNom);
 const kpis=[
   {lbl:"Notionnel investi", val:fmtEur(totalNom), sub:P.length+" produits"},
-  {lbl:"Valeur de marché", val:fmtEur(mvCote), sub:(COTES.length<P.length? COTES.length+" produits cotés, hors SG non coté" : "au dernier relevé")},
-  {lbl:"Performance globale", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:(COTES.length<P.length? COTES.length+" produits cotés, vs nominal" : "vs nominal"), cls:portRet>=0?"pos":"neg"},
+  {lbl:"Valeur de marché", val:fmtEur(totalMv), sub:(COTES.length<P.length? "5 produits, dont SG au pair (non coté)" : "au dernier relevé")},
+  {lbl:"Performance globale", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:(COTES.length<P.length? "5 produits dont SG au pair, vs nominal" : "vs nominal"), cls:portRet>=0?"pos":"neg"},
   {lbl:"Marge capital min.", val:"−"+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+"%", sub:"avant perte en capital"},
 ];
 document.getElementById('kpis').innerHTML = kpis.map(k=>
@@ -732,14 +729,15 @@ const REF_DETAIL = {
       "Si la barrière Click n'a jamais été activée et qu'à l'échéance le sous-jacent est <b>inférieur à la <span style=\"color:var(--barrier)\">barrière de protection (50%)</span></b> : capital remboursé à due proportion de la baisse du sous-jacent (perte en capital)."
     ]},
   "FR001401BVU9": {nomOfficiel:"Digit Click Bond", emetteurLegal:"SG Issuer (Gar. Société Générale)", ticker:"SOUSEUD5",
-    indiceOfficiel:"Panier SOUSEUD5 : 60% MSE FP / 40% IUSE LN, décrément 5%", maturite:"2036-11-04", barriereCapitalTxt:"70% (-30%), à maturité",
-    clickTxt:"04/11/2031 puis annuellement", clickBarriereTxt:"98% (années 5 à 10)", couponTxt:"77% (année 5), puis 84%, 90%, 96%, 100% et 105% (année 10)",
-    typeProduit:"Digit Click Bond — non coté à ce jour : valorisé au pair en attendant la première cotation, hors valeur de marché et performance globale",
+    indiceOfficiel:"Solactive US Europe 40/60 Daily Weighted Select 5% AR Index", maturite:"2036-11-25", barriereCapitalTxt:"70% (-30%), à maturité, sauf click intervenu",
+    clickTxt:"12/11/2031 puis annuellement", clickBarriereTxt:"98% (-2%), années 5 à 10", couponTxt:"77% (année 5), 84%, 90%, 96%, 100%, 105% (année 10), versé à l'échéance",
+    typeProduit:"Digit Click Bond — coupon acté au premier franchissement de la barrière de 98%, versé à l'échéance ; non coté à ce jour, valorisé au pair (y compris dans la valeur de marché et la performance globale)",
     mecanisme:[
-      "À chaque date de constatation annuelle à partir de l'année 5, si le sous-jacent est <b>supérieur ou égal à la <span style=\"color:var(--coupon)\">barrière de 98%</span></b> de son niveau initial : remboursement anticipé à 100% du nominal + coupon de l'année (<b>77%</b> en année 5, puis 84%, 90%, 96%, 100% et <b>105%</b> en année 10).",
-      "Si le produit n'a pas été remboursé par anticipation et qu'à l'échéance le sous-jacent est <b>supérieur ou égal à la <span style=\"color:var(--barrier)\">barrière de protection (70%)</span></b> : remboursement de 100% du nominal.",
-      "Si à l'échéance le sous-jacent est <b>inférieur à <span style=\"color:var(--barrier)\">70%</span></b> de son niveau initial : capital remboursé à due proportion de la baisse du sous-jacent (perte en capital).",
-      "Niveau initial : moyenne des niveaux des 21/10, 04/11 et 18/11/2026. Produit sans prix indicatif Altitude à ce jour : valorisé au pair (100%) en attendant la première cotation."
+      "À chaque date d'évaluation annuelle de l'année 5 à l'année 10 (12/11/2031 à 12/11/2036), si le sous-jacent est pour la première fois <b>supérieur ou égal à la <span style=\"color:var(--coupon)\">barrière de 98%</span></b> de son niveau initial : le coupon de l'année est définitivement acquis (<b>77%</b> en année 5, puis 84%, 90%, 96%, 100% et <b>105%</b> en année 10). Il est versé avec le nominal à l'échéance du 25/11/2036 : pas de remboursement anticipé.",
+      "Si un coupon a été acquis, le capital est remboursé à 100% à l'échéance, quel que soit le niveau final du sous-jacent.",
+      "Si aucun coupon n'a été acquis et qu'à l'échéance le sous-jacent est <b>supérieur ou égal à la <span style=\"color:var(--barrier)\">barrière de protection (70%)</span></b> : remboursement de 100% du nominal, sans coupon.",
+      "Si aucun coupon n'a été acquis et qu'à l'échéance le sous-jacent est <b>inférieur à <span style=\"color:var(--barrier)\">70%</span></b> de son niveau initial : capital remboursé à due proportion de la baisse du sous-jacent (perte en capital).",
+      "Niveau initial : 1 256,56 points, moyenne des clôtures des 21/10, 04/11 et 18/11/2026. Produit sans prix indicatif Altitude à ce jour : valorisé au pair (100%) en attendant la première cotation."
     ]},
 };
 document.getElementById('refTable').innerHTML =
@@ -1113,12 +1111,22 @@ document.querySelectorAll('#periodNav .period-btn').forEach(btn=>{
     renderSousJacents(btn.dataset.period);
   });
 });
+const prodSelect = document.getElementById('prodSelect'), prodNav = document.getElementById('prodNav');
+['DE000UQ0MWF3','XS3080432829','FR0014015IH0','XS3266363558','FR001401BVU9'].forEach(id=>{ const p=P.find(x=>x.id===id); const o=document.createElement('option'); o.value=id; o.textContent=shortLabel(p)+'  ·  '+id; prodSelect.appendChild(o); });
+function showPanel(panel){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  panel.classList.add('active');
+  requestAnimationFrame(()=>{ panel.querySelectorAll('canvas').forEach(c=>{ const ch=Chart.getChart(c); if(ch) ch.resize(); }); });
+}
+prodSelect.addEventListener('change', ()=> showPanel(document.querySelector(`.tab-panel[data-panel="prod-${prodSelect.value}"]`)));
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
-    const panel = document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`);
+    const isProd = btn.dataset.tab==='produit';
+    prodNav.style.display = isProd ? 'flex' : 'none';
+    const panel = document.querySelector(`.tab-panel[data-panel="${isProd ? 'prod-'+prodSelect.value : btn.dataset.tab}"]`);
     panel.classList.add('active');
     // Les graphiques créés dans un onglet masqué ne détectent pas leur taille : on les redimensionne à l'affichage
     requestAnimationFrame(()=>{
@@ -1130,7 +1138,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   });
 });
 document.getElementById('foot').textContent =
-  "Valeur potentielle = valeur au click, coupon enclenché, scénario indice figé à aujourd'hui (UBS/BNP Titans au terme 9 ans → 100%+9×12% ; Natixis 1er click 5 ans → 100%+5×12% ; BNP MSOVERNT 1er click 5 ans → 100%+5×12%, estimation simplifiée qui ne modélise pas le mécanisme réel de switch-to-bond post-click à 3% p.a. capitalisé). Distance barrière = baisse que l'indice peut absorber avant de casser la barrière de protection ou de coupon (UBS 80% / BNP Titans 86% / Natixis 80% / BNP MSOVERNT 100% en année 5, dégressive ensuite). Données à mettre à jour dans le bloc en tête de fichier à chaque relevé.";
+  "Valeur potentielle = valeur au click, coupon enclenché, scénario indice figé à aujourd'hui (UBS/BNP Titans au terme 9 ans → 100%+9×12% ; Natixis 1er click 5 ans → 100%+5×12% ; BNP MSOVERNT 1er click 5 ans → 100%+5×12%, estimation simplifiée qui ne modélise pas le mécanisme réel de switch-to-bond post-click à 3% p.a. capitalisé). Distance barrière = baisse que l'indice peut absorber avant de casser la barrière de protection ou de coupon (UBS 80% / BNP Titans 86% / Natixis 100% en année 5 (80% en année 9) / BNP MSOVERNT 100% en année 5, dégressive ensuite). Données à mettre à jour dans le bloc en tête de fichier à chaque relevé. Click SG Europe US : coupon de 77% acquis au 1er click (année 5, barrière 98%), versé à l'échéance du 25/11/2036 → 177% à l'échéance.";
 </script>
 </body>
 </html>
