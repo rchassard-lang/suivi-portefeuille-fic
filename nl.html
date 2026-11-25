@@ -27,6 +27,15 @@ header{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:8px}
 h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
 .asof{font-size:13px;color:var(--muted);margin-top:6px}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:28px 0}
+.kgrps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:28px 0}
+.kgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px}
+.kgrp .gh{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:2px}
+.kgrp .gs{font-size:11px;color:var(--muted);margin-bottom:4px;line-height:1.35}
+.kgrp .kr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.kgrp .kl{font-size:13px;font-weight:600;color:var(--ink2)}
+.kgrp .ks{font-size:11px;color:var(--muted);margin-top:1px}
+.kgrp .kv{font-size:22px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+@media(max-width:900px){.kgrps{grid-template-columns:1fr}}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
 .kpi .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .kpi .val{font-size:26px;font-weight:800;margin-top:6px;letter-spacing:-.02em}
@@ -77,6 +86,10 @@ h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
 .bar-barrier2 .tag{position:absolute;top:19px;left:50%;transform:translate(-50%,-50%);font-size:10px;color:var(--coupon);font-weight:700;white-space:nowrap;background:var(--card);padding:0 2px;border-radius:2px}
 .bar-ref{position:absolute;top:0;width:1px;height:38px;background:var(--muted);opacity:.55}
 .bar-ref .tag{position:absolute;top:19px;left:50%;transform:translate(-50%,-50%);font-size:9px;color:var(--muted);font-weight:600;background:var(--card);padding:0 2px;border-radius:2px}
+.barr-wrap{position:relative}
+.barr-wrap .ref-line{position:absolute;top:0;bottom:22px;width:0;border-left:1.5px dashed var(--ink2);opacity:.55;z-index:3;pointer-events:none}
+.barr-wrap .ref-foot{position:relative;height:22px}
+.barr-wrap .ref-foot span{position:absolute;top:4px;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--ink2);white-space:nowrap}
 .bar-legend{display:flex;gap:18px;font-size:11px;color:var(--muted);margin-top:14px}
 .bar-legend span{display:inline-flex;align-items:center;gap:5px}
 .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
@@ -206,7 +219,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
 </div>
 
 <div class="tab-panel" data-panel="dashboard">
-<div class="kpis" id="kpis"></div>
+<div class="kgrps" id="kpis"></div>
 
 <div class="section-title">Kenmerken van de producten van het FIC SAA</div>
 <div class="grid" style="margin-top:16px;grid-template-columns:1fr">
@@ -244,7 +257,7 @@ footer{margin-top:40px;font-size:11px;color:var(--muted);border-top:1px solid va
   <div class="card">
     <h2>Afstand tot de barrières</h2>
     <div class="hint">Daling die de index kan opvangen voor elke barrière wordt doorbroken</div>
-    <div id="barrAll"></div>
+    <div id="barrAll" class="barr-wrap"></div>
     <div class="bar-legend">
       <span><span class="sw" style="background:var(--ink)"></span>Indexniveau</span>
       <span><span class="sw" style="background:var(--barrier)"></span>Kapitaalb.</span>
@@ -421,14 +434,33 @@ const asofDate = P.reduce((mx,p)=>p.dateRelevé>mx?p.dateRelevé:mx, lastDate);
 document.getElementById('asof').textContent =
   "Laatste opname: "+new Date(asofDate).toLocaleDateString('nl-NL',{day:'2-digit',month:'long',year:'numeric'})
   +" · "+P.length+" producten · nominaal "+fmtEur(totalNom);
-const kpis=[
-  {lbl:"Belegd nominaal", val:fmtEur(totalNom), sub:P.length+" producten"},
-  {lbl:"Marktwaarde", val:fmtEur(totalMv), sub:(COTES.length<P.length? "5 producten, waarvan SG a pari (niet genoteerd)" : "op laatste opname")},
-  {lbl:"Totale performance", val:(portRet>=0?"+":"")+portRet.toFixed(1)+"%", sub:(COTES.length<P.length? "5 producten waarvan SG a pari, t.o.v. nominaal" : "t.o.v. nominaal"), cls:portRet>=0?"pos":"neg"},
-  {lbl:"Min. kapitaalmarge", val:"−"+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+"%", sub:"voor kapitaalverlies"},
+const pct1 = x => (x>=0?'+':'')+x.toFixed(1).replace('.',',')+'%';
+const potEur = P.reduce((s,p)=>s+p.notionnel*p.valeurPot/100,0);
+const FLOWS = P.map(p=>({t:p.dureeRes, cf:p.notionnel*p.valeurPot/100}));
+const npvAt = r => FLOWS.reduce((s,f)=>s+f.cf/Math.pow(1+r,f.t),0) - totalMv;
+let lo=-0.5, hi=1; for(let k=0;k<200;k++){ const mid=(lo+hi)/2; if(npvAt(mid)>0) lo=mid; else hi=mid; }
+const triPot = (lo+hi)/2;
+const pvTot = FLOWS.reduce((s,f)=>s+f.cf/Math.pow(1+triPot,f.t),0);
+const durPot = FLOWS.reduce((s,f)=>s+f.t*f.cf/Math.pow(1+triPot,f.t),0)/pvTot;
+const tMin = Math.min(...FLOWS.map(f=>f.t)), tMax = Math.max(...FLOWS.map(f=>f.t));
+const fmtY = x => x.toFixed(1).replace('.',',')+' jaar';
+const KGROUPS = [
+  {h:'Portefeuille', rows:[
+    {l:'Belegd nominaal', s:P.length+' producten', v:fmtEur(totalNom)},
+    {l:'Marktwaarde', s:(COTES.length<P.length?'waarvan SG a pari (niet genoteerd)':''), v:fmtEur(totalMv)},
+    {l:'Totale performance', s:'t.o.v. nominaal', v:pct1(portRet), cls:portRet>=0?'pos':'neg'}]},
+  {h:'Potentieel', sub:'Scenario: elk product activeert zijn coupon op de eerst mogelijke datum', rows:[
+    {l:'Potentiële waarde', s:(potEur/totalNom*100).toFixed(0)+'% van het nominaal', v:fmtEur(potEur)},
+    {l:'Potentiële multiple', s:'t.o.v. marktwaarde', v:'x'+(potEur/totalMv).toFixed(2).replace('.',',')},
+    {l:'Potentieel IRR', s:'actuarieel, op jaarbasis', v:pct1(triPot*100), cls:triPot>=0?'pos':'neg'}]},
+  {h:'Horizon en risico', rows:[
+    {l:'Duration', s:'gewogen gemiddelde van de potentiële stromen', v:fmtY(durPot)},
+    {l:'Vervaldag stromen', s:'van de dichtstbijzijnde tot de verste', v:tMin.toFixed(1).replace('.',',')+' tot '+fmtY(tMax)},
+    {l:'Min. kapitaalmarge', s:'daling voor kapitaalverlies', v:'−'+Math.min(...P.map(p=>p.distCapital)).toFixed(0)+'%'}]}
 ];
-document.getElementById('kpis').innerHTML = kpis.map(k=>
-  `<div class="kpi"><div class="lbl">${k.lbl}</div><div class="val ${k.cls||''}">${k.val}</div><div class="sub">${k.sub}</div></div>`).join('');
+document.getElementById('kpis').innerHTML = KGROUPS.map(g=>
+  `<div class="kgrp"><div class="gh">${g.h}</div>${g.sub?`<div class="gs">${g.sub}</div>`:''}`+
+  g.rows.map(r=>`<div class="kr"><div><div class="kl">${r.l}</div>${r.s?`<div class="ks">${r.s}</div>`:''}</div><div class="kv ${r.cls||''}">${r.v}</div></div>`).join('')+`</div>`).join('');
 Chart.defaults.font.family="Inter, Segoe UI, system-ui, sans-serif";
 Chart.defaults.font.size=12;
 Chart.defaults.color=cssv('--ink2');
@@ -651,7 +683,6 @@ document.getElementById('barrAll').innerHTML = P.map(p=>{
     </div>
     <div class="bar-track">
       <div class="bar-fill" style="width:${curPos}%;background:${col}"></div>
-      <div class="bar-ref" style="left:${100/maxScale*100}%"><span class="tag">100%</span></div>
       <div class="bar-barrier" style="left:${capPos}%"><span class="tag">${p.barriereCapital}%</span></div>
       <div class="bar-barrier2" style="left:${coupPos}%"><span class="tag">${p.barriereCoupon}%</span></div>
       <div class="bar-cursor" style="left:${curPos}%">
@@ -660,7 +691,7 @@ document.getElementById('barrAll').innerHTML = P.map(p=>{
       </div>
     </div>
   </div>`;
-}).join('');
+}).join('')+`<div class="ref-line" style="left:${100/maxScale*100}%"></div><div class="ref-foot"><span style="left:${100/maxScale*100}%">100% · startniveau</span></div>`;
 new Chart(document.getElementById('cPot'),{type:'bar',data:{labels:P.map(p=>compactLabel(p)),
   datasets:[
     {label:'Huidige waardering',data:P.map(p=>p.valo),backgroundColor:cssv('--muted'),borderRadius:5},
